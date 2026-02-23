@@ -54,8 +54,7 @@ if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     
     echo "Applying AuthorizationPolicy policies..."
     kubectl apply -f istio/security/authorization-policy.yaml
-    kubectl apply -f istio/security/authorization-policy-lpcdm.yaml
-    
+
     echo -e "${GREEN}✓ Security policies applied${NC}"
 fi
 

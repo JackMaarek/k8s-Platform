@@ -1,5 +1,7 @@
 # Production-Grade Kubernetes Platform
 
+⚠️ WIP ⚠️
+
 ## Overview
 Complete Kubernetes platform with local development and AWS production support.
 
@@ -53,8 +55,13 @@ k8s-platform/
 # Start Minikube
 minikube start --cpus=4 --memory=8192
 
-# Apply base namespaces
+# 
+# You can either Apply components yourself (ex: base namespaces etc..)
 kubectl apply -f kubernetes/namespaces/
+
+# Or use the /scripts to install and deploy all the cluster's components.
+chmod+x /scripts/install-istio.sh # Same for every component you need, monitoring, argocd whatever if you even want to incorporate your scripts. Maybe this will become too messy
+./scripts/install-istio.sh
 
 # Install sample application
 helm install sample-app kubernetes/helm/sample-app -n development
@@ -71,7 +78,7 @@ terraform plan
 terraform apply
 
 # Configure kubectl
-aws eks update-kubeconfig --region us-west-2 --name dev-k8s-cluster
+aws eks update-kubeconfig --region eu-west-3 --name dev-k8s-cluster
 ```
 
 ## Key Features
@@ -82,6 +89,8 @@ aws eks update-kubeconfig --region us-west-2 --name dev-k8s-cluster
 - ✅ Horizontal and cluster autoscaling
 - ✅ Production-ready Helm charts
 - ✅ Complete monitoring stack (Prometheus + Grafana + Loki)
+- 👷🏽 Generation of Argo, kube & prometheus dashboard configs to improve the DevX, DeployX (cookiecutter ?)
+- 👷🏽 CI/CD checks non regression
 
 ## Documentation
 Each major directory contains its own README with detailed instructions, architecture decisions, and troubleshooting guides.
