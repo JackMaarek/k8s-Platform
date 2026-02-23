@@ -1,0 +1,82 @@
+---
+# Deny all by default in development namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: development
+spec:
+  {}
+---
+# Allow traffic to sample-app within development namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-sample-app
+  namespace: development
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sample-app
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["development"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/*"]
+---
+# Allow ingress gateway to access sample-app
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-to-sample-app
+  namespace: development
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sample-app
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/*"]
+---
+# Allow health checks from Kubernetes
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: development
+spec:
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        paths: ["/healthz", "/ready", "/live"]
+        methods: ["GET"]
+---
+# Deny all by default in staging namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: staging
+spec:
+  {}
+---
+# Deny all by default in production namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: production
+spec:
+  {}
