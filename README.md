@@ -24,16 +24,19 @@ k8s-platform/
 ├── terraform/          # Infrastructure as Code
 │   ├── modules/        # Reusable Terraform modules
 │   └── environments/   # Environment-specific configs
+
 ├── kubernetes/         # Kubernetes manifests and Helm charts
 │   ├── helm/           # Application Helm charts
 │   │   ├── sample-app/ # Sample application
 │   │   └── monitoring/ # Prometheus, Grafana, Loki configs
 │   ├── manifests/      # Raw Kubernetes YAML
 │   └── namespaces/     # Namespace definitions
+
 ├── istio/              # Service mesh configuration
 │   ├── base/           # Base Istio installation
 │   ├── security/       # Security policies
 │   └── traffic/        # Traffic management
+
 ├── argocd/             # GitOps configurations
 │   ├── bootstrap/      # Initial Argo CD setup
 │   └── applications/   # Application definitions
@@ -54,8 +57,7 @@ k8s-platform/
 ```bash
 # Start Minikube
 minikube start --cpus=4 --memory=8192
-
-# 
+ 
 # You can either Apply components yourself (ex: base namespaces etc..)
 kubectl apply -f kubernetes/namespaces/
 
