@@ -21,7 +21,10 @@
 Thumbs.db
 
 # Secrets
-**/*secret*
 **/*password*
 **/*credentials*
 !*/secrets-example.yaml
+kubernetes/secrets/*.yaml
+
+# FILES
+*.zip
