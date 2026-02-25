@@ -1,0 +1,10 @@
+apiVersion: v2
+name: istio-config
+description: Istio traffic and security configuration
+type: application
+version: 1.0.0
+appVersion: "0.0.1"
+keywords:
+  - kubernetes
+  - helm
+  - istio
