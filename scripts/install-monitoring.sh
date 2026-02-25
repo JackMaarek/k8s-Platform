@@ -1,125 +1,136 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-echo "=========================================="
-echo "Installing Monitoring Stack"
-echo "Prometheus + Grafana + Loki"
-echo "=========================================="
-echo ""
+# Monitoring stack installation
+# Installs kube-prometheus-stack (Prometheus + Grafana + AlertManager), Loki and Promtail
+# Usage: ./scripts/install-monitoring.sh
 
-# Colors
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Check prerequisites
-echo "Checking prerequisites..."
-command -v kubectl >/dev/null 2>&1 || { echo -e "${RED}Error: kubectl is not installed${NC}" >&2; exit 1; }
-command -v helm >/dev/null 2>&1 || { echo -e "${RED}Error: helm is not installed${NC}" >&2; exit 1; }
+log_info()    { echo -e "${BLUE}[INFO]${NC}  $*"; }
+log_success() { echo -e "${GREEN}[OK]${NC}    $*"; }
+log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+log_error()   { echo -e "${RED}[ERR]${NC}   $*" >&2; }
 
-echo -e "${GREEN}✓ Prerequisites installed${NC}"
-echo ""
+wait_for_pods() {
+  local label="$1"
+  local namespace="$2"
+  local timeout="${3:-600s}"
+  log_info "Waiting for pods ($label) in $namespace..."
+  kubectl wait --for=condition=ready pod \
+    -l "$label" \
+    -n "$namespace" \
+    --timeout="$timeout"
+  log_success "Pods ready — $label"
+}
 
-# Create monitoring namespace
-echo "Creating monitoring namespace..."
-kubectl apply -f kubernetes/namespaces/monitoring-namespace.yaml
-echo -e "${GREEN}✓ Namespace created${NC}"
-echo ""
+check_prereqs() {
+  log_info "Checking prerequisites..."
+  for cmd in kubectl helm; do
+    if ! command -v "$cmd" &>/dev/null; then
+      log_error "$cmd is not installed"
+      exit 1
+    fi
+  done
+  log_success "Prerequisites found"
+}
 
-# Add Helm repositories
-echo "Adding Helm repositories..."
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-echo -e "${GREEN}✓ Helm repositories added${NC}"
-echo ""
+add_helm_repos() {
+  log_info "Adding Helm repositories..."
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm repo add grafana https://grafana.github.io/helm-charts
+  helm repo update
+  log_success "Helm repositories updated"
+}
 
-# Install Prometheus Stack (includes Grafana)
-echo "Installing Prometheus + Grafana Stack..."
-echo -e "${YELLOW}This may take a few minutes...${NC}"
-helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --values kubernetes/helm/monitoring/prometheus-values.yaml \
-  --wait
+install_prometheus_stack() {
+  log_info "Installing kube-prometheus-stack..."
+  helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+    --namespace monitoring \
+    --values "$ROOT_DIR/kubernetes/helm/monitoring/prometheus-values.yaml" \
+    --timeout 10m \
+    --wait
+  wait_for_pods "app.kubernetes.io/name=grafana" "monitoring"
+  wait_for_pods "app.kubernetes.io/name=prometheus" "monitoring"
+  log_success "kube-prometheus-stack installed"
+}
 
-echo -e "${GREEN}✓ Prometheus and Grafana installed${NC}"
-echo ""
+install_loki() {
+  log_info "Installing Loki..."
+  helm upgrade --install loki grafana/loki \
+    --namespace monitoring \
+    --values "$ROOT_DIR/kubernetes/helm/monitoring/loki-values.yaml" \
+    --timeout 10m \
+    --wait
+  wait_for_pods "app.kubernetes.io/name=loki" "monitoring"
+  log_success "Loki installed"
+}
 
-# Install Loki Stack
-echo "Installing Loki Stack for logging..."
-helm upgrade --install loki grafana/loki-stack \
-  --namespace monitoring \
-  --values kubernetes/helm/monitoring/loki-values.yaml \
-  --wait
+install_promtail() {
+  log_info "Installing Promtail..."
+  helm upgrade --install promtail grafana/promtail \
+    --namespace monitoring \
+    --values "$ROOT_DIR/kubernetes/helm/monitoring/promtail-values.yaml" \
+    --timeout 5m \
+    --wait
+  log_success "Promtail installed"
+}
 
-echo -e "${GREEN}✓ Loki installed${NC}"
-echo ""
+apply_grafana_config() {
+  # Apply datasources and dashboards ConfigMaps
+  log_info "Applying Grafana datasources..."
+  kubectl apply -f "$ROOT_DIR/kubernetes/manifests/grafana/datasources.yaml"
 
-# Wait for pods to be ready
-echo "Waiting for all pods to be ready..."
-kubectl wait --for=condition=ready pod -l "release=prometheus" -n monitoring --timeout=300s
-kubectl wait --for=condition=ready pod -l "app=loki" -n monitoring --timeout=300s
+  log_info "Applying Grafana dashboards..."
+  kubectl apply -f "$ROOT_DIR/kubernetes/manifests/grafana/dashboards/"
+  log_success "Grafana config applied"
+}
 
-echo -e "${GREEN}✓ All monitoring pods are ready${NC}"
-echo ""
+apply_servicemonitors() {
+  log_info "Applying ServiceMonitors..."
+  kubectl apply -f "$ROOT_DIR/kubernetes/manifests/servicemonitors/" 2>/dev/null \
+    || log_warn "No ServiceMonitors applied — apps may not be deployed yet"
+}
 
-# Apply ServiceMonitors
-echo "Applying ServiceMonitor for sample app..."
-kubectl apply -f kubernetes/manifests/sample-app-servicemonitor.yaml 2>/dev/null || echo -e "${YELLOW}Note: sample-app not deployed yet${NC}"
+print_access() {
+  local grafana_password
+  grafana_password=$(kubectl get secret prometheus-grafana \
+    -n monitoring \
+    -o jsonpath="{.data.admin-password}" | base64 -d)
 
-echo ""
-echo "=========================================="
-echo "Monitoring Stack Installation Complete!"
-echo "=========================================="
-echo ""
+  echo ""
+  log_success "Monitoring stack ready"
+  echo ""
+  echo "  Grafana"
+  echo "  kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80"
+  echo "  http://localhost:3000 — admin / $grafana_password"
+  echo ""
+  echo "  Prometheus"
+  echo "  kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090"
+  echo "  http://localhost:9090"
+  echo ""
+  echo "  AlertManager"
+  echo "  kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-alertmanager 9093:9093"
+  echo "  http://localhost:9093"
+  echo ""
+}
 
-# Get Grafana admin password
-GRAFANA_PASSWORD=$(kubectl get secret prometheus-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d)
+main() {
+  check_prereqs
+  add_helm_repos
+  install_prometheus_stack
+  install_loki
+  install_promtail
+  apply_grafana_config
+  apply_servicemonitors
+  print_access
+}
 
-echo -e "${BLUE}=== Access Information ===${NC}"
-echo ""
-echo -e "${GREEN}Grafana:${NC}"
-echo "  Username: admin"
-echo "  Password: $GRAFANA_PASSWORD"
-echo ""
-echo "  To access Grafana UI:"
-echo -e "  ${YELLOW}kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80${NC}"
-echo "  Then visit: http://localhost:3000"
-echo ""
-echo -e "${GREEN}Prometheus:${NC}"
-echo "  To access Prometheus UI:"
-echo -e "  ${YELLOW}kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090${NC}"
-echo "  Then visit: http://localhost:9090"
-echo ""
-echo -e "${GREEN}AlertManager:${NC}"
-echo "  To access AlertManager UI:"
-echo -e "  ${YELLOW}kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-alertmanager 9093:9093${NC}"
-echo "  Then visit: http://localhost:9093"
-echo ""
-echo -e "${BLUE}=== Pre-installed Dashboards ===${NC}"
-echo "  • Kubernetes Cluster (ID: 7249)"
-echo "  • Kubernetes Pods (ID: 6417)"
-echo "  • Istio Mesh (ID: 7639)"
-echo "  • Istio Service (ID: 7636)"
-echo "  • Istio Workload (ID: 7630)"
-echo "  • Node Exporter (ID: 1860)"
-echo ""
-echo -e "${BLUE}=== Useful Commands ===${NC}"
-echo "  View all monitoring pods:"
-echo -e "    ${YELLOW}kubectl get pods -n monitoring${NC}"
-echo ""
-echo "  View Prometheus targets:"
-echo -e "    ${YELLOW}kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090${NC}"
-echo "    Then visit: http://localhost:9090/targets"
-echo ""
-echo "  View logs with Loki:"
-echo "    Use Grafana's Explore feature with Loki datasource"
-echo ""
-echo -e "${BLUE}=== Next Steps ===${NC}"
-echo "  1. Access Grafana and explore pre-configured dashboards"
-echo "  2. Configure AlertManager for notifications"
-echo "  3. Create custom dashboards for your applications"
-echo "  4. Set up alert rules for critical metrics"
-echo ""
+main "$@"

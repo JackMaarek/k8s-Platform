@@ -1,75 +1,98 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-echo "=========================================="
-echo "Installing Istio Service Mesh"
-echo "=========================================="
-echo ""
+# Istio service mesh installation
+# Applies security policies and labels namespaces for sidecar injection
+# Usage: ./scripts/install-istio.sh
 
-# Colors
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Check if istioctl is installed
-if ! command -v istioctl &> /dev/null; then
-    echo -e "${YELLOW}istioctl not found. Downloading Istio...${NC}"
+log_info()    { echo -e "${BLUE}[INFO]${NC}  $*"; }
+log_success() { echo -e "${GREEN}[OK]${NC}    $*"; }
+log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+log_error()   { echo -e "${RED}[ERR]${NC}   $*" >&2; }
+
+ask_yn() {
+  local question="$1"
+  echo -e "${YELLOW}?${NC} $question [y/n] "
+  read -r response
+  [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
+}
+
+install_istioctl() {
+  if ! command -v istioctl &>/dev/null; then
+    log_warn "istioctl not found — downloading..."
     curl -L https://istio.io/downloadIstio | sh -
-    cd istio-*/
-    export PATH=$PWD/bin:$PATH
-    echo ""
-    echo -e "${GREEN}✓ Istio downloaded${NC}"
-    echo -e "${YELLOW}Add to PATH: export PATH=\$PWD/bin:\$PATH${NC}"
-    echo ""
-fi
+    # Add to PATH for current session
+    export PATH="$PWD/$(ls -d istio-*/)/bin:$PATH"
+    log_success "istioctl downloaded"
+    log_warn "Add to PATH permanently: export PATH=\$PWD/istio-<version>/bin:\$PATH"
+  else
+    log_success "istioctl found: $(istioctl version --short 2>/dev/null || echo 'unknown')"
+  fi
+}
 
-# Install Istio
-echo "Installing Istio with default profile..."
-istioctl install --set profile=default -y
+install_istio() {
+  log_info "Installing Istio with default profile..."
+  istioctl install --set profile=default -y
+  log_success "Istio installed"
 
-echo -e "${GREEN}✓ Istio installed${NC}"
-echo ""
+  log_info "Verifying installation..."
+  kubectl get pods -n istio-system
+}
 
-# Verify installation
-echo "Verifying installation..."
-kubectl get pods -n istio-system
-echo ""
+label_namespaces() {
+  # Enable automatic sidecar injection on app namespaces
+  log_info "Labeling namespaces for sidecar injection..."
+  for ns in development staging production; do
+    kubectl label namespace "$ns" istio-injection=enabled --overwrite
+    log_success "Namespace $ns labeled"
+  done
+}
 
-# Label namespaces for sidecar injection
-echo "Enabling automatic sidecar injection for namespaces..."
-kubectl label namespace development istio-injection=enabled --overwrite
-kubectl label namespace staging istio-injection=enabled --overwrite
-kubectl label namespace production istio-injection=enabled --overwrite
+apply_security_policies() {
+  log_info "Applying strict mTLS policy..."
+  kubectl apply -f "$ROOT_DIR/istio/security/peer-authentication-strict.yaml"
+  log_success "mTLS policy applied"
 
-echo -e "${GREEN}✓ Namespaces labeled for sidecar injection${NC}"
-echo ""
+  log_info "Applying Istio traffic config (VirtualServices, DestinationRules, AuthorizationPolicies)..."
+  helm upgrade --install istio-config "$ROOT_DIR/istio/helm" \
+    --namespace istio-system \
+    --wait
+  log_success "Istio traffic config applied"
+}
 
-# Apply security policies
-echo "Do you want to apply strict mTLS and authorization policies? (y/n)"
-read -r response
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    echo "Applying PeerAuthentication policies..."
-    kubectl apply -f istio/security/peer-authentication-strict.yaml
-    
-    echo "Applying AuthorizationPolicy policies..."
-    kubectl apply -f istio/security/authorization-policy.yaml
+print_access() {
+  echo ""
+  log_success "Istio ready"
+  echo ""
+  echo "  istioctl version"
+  echo "  istioctl verify-install"
+  echo "  istioctl analyze -A"
+  echo "  kubectl get pods -n istio-system"
+  echo ""
+  echo "  # Check mTLS status"
+  echo "  istioctl authn tls-check"
+  echo ""
+}
 
-    echo -e "${GREEN}✓ Security policies applied${NC}"
-fi
+main() {
+  install_istioctl
+  install_istio
+  label_namespaces
 
-echo ""
-echo "=========================================="
-echo "Istio Installation Complete!"
-echo "=========================================="
-echo ""
-echo "Useful commands:"
-echo "  istioctl version"
-echo "  istioctl verify-install"
-echo "  istioctl analyze -A"
-echo "  istioctl dashboard kiali"
-echo "  kubectl get pods -n istio-system"
-echo ""
-echo "To check mTLS status:"
-echo "  istioctl authn tls-check"
-echo ""
+  if ask_yn "Apply security policies and traffic config?"; then
+    apply_security_policies
+  fi
+
+  print_access
+}
+
+main "$@"

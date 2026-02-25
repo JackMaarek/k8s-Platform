@@ -1,29 +1,24 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-echo "=========================================="
-echo "Kubernetes Platform - Cleanup"
-echo "=========================================="
-echo ""
+# Deletes the local Minikube cluster and all resources
+# Usage: ./scripts/cleanup-local.sh
 
-# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${YELLOW}WARNING: This will delete the Minikube cluster and all resources!${NC}"
-echo "Are you sure you want to continue? (yes/no)"
+log_success() { echo -e "${GREEN}[OK]${NC}    $*"; }
+log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+
+log_warn "This will delete the Minikube cluster and all resources!"
+echo -e "${YELLOW}?${NC} Are you sure? [yes/no] "
 read -r response
 
 if [[ ! "$response" =~ ^([yY][eE][sS])$ ]]; then
-    echo "Cleanup cancelled."
-    exit 0
+  echo "Cleanup cancelled."
+  exit 0
 fi
 
-echo ""
-echo "Deleting Minikube cluster..."
 minikube delete
-
-echo -e "${GREEN}✓ Cleanup complete${NC}"
-echo ""
+log_success "Cluster deleted"
