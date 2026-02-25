@@ -1,0 +1,23 @@
+{{- range .Values.apps }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+spec:
+  hosts:
+    - {{ .name }}
+    - {{ .name }}.{{ .namespace }}.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: {{ .name }}
+            subset: v1
+          weight: 100
+      timeout: {{ .timeout }}
+      retries:
+        attempts: {{ .retries }}
+        perTryTimeout: 10s
+        retryOn: 5xx,reset,connect-failure,refused-stream
+{{- end }}
