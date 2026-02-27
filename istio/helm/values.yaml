@@ -1,6 +1,11 @@
 # Istio configuration — add an app here to get VirtualService,
 # DestinationRule and AuthorizationPolicy generated automatically
 apps:
+  - name: lpcdm
+    namespace: development
+    port: 80
+    timeout: 30s
+    retries: 3
   - name: sample-app
     namespace: development
     port: 80
