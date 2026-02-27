@@ -1,13 +1,9 @@
 apiVersion: v2
 name: sample-app
-description: Production-ready sample application with security best practices
+description: Generic application chart for PodYourLife platform
 type: application
 version: 1.0.0
-appVersion: "1.0.0"
-keywords:
-  - kubernetes
-  - helm
-  - production
+appVersion: "latest"
 maintainers:
   - name: Platform Team
-    email: platform@example.com
+    email: platform@podyourlife.com

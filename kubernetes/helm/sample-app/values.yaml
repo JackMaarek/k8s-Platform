@@ -1,11 +1,13 @@
-replicaCount: 3
+# Generic defaults — override in kubernetes/helm/values/<app>.yaml
+replicaCount: 2
 
 image:
-  repository: nginx
-  pullPolicy: IfNotPresent
-  tag: "1.25-alpine"
+  repository: ""
+  pullPolicy: Always
+  tag: "latest"
 
 imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
 
@@ -14,9 +16,7 @@ serviceAccount:
   annotations: {}
   name: ""
 
-podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "80"
+podAnnotations: {}
 
 podLabels:
   version: v1
@@ -32,36 +32,27 @@ securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-  fsGroup: 1000
 
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
+  targetPort: 8080
   annotations: {}
 
 ingress:
   enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
 
 resources:
   limits:
     cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 250m
     memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
 livenessProbe:
   httpGet:
@@ -84,36 +75,31 @@ readinessProbe:
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 5
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
-
 tolerations: []
 
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - sample-app
-        topologyKey: kubernetes.io/hostname
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - sample-app
+          topologyKey: kubernetes.io/hostname
 
-# Additional volumes (e.g., for writable directories)
-volumes:
-  - name: nginx-cache
-    emptyDir: {}
-  - name: nginx-run
-    emptyDir: { }
+# Optional secret to inject as env vars
+secret:
+  enabled: false
+  name: ""
 
-volumeMounts:
-  - name: nginx-cache
-    mountPath: /var/cache/nginx
-  - name: nginx-run
-    mountPath: /var/run
+# Optional writable volumes
+volumes: []
+volumeMounts: []
