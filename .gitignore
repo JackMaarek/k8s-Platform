@@ -24,7 +24,12 @@ Thumbs.db
 **/*password*
 **/*credentials*
 !*/secrets-example.yaml
-kubernetes/secrets/*.yaml
+.argocd-secrets
+.grafana-secrets
+scripts/*_SECRET.md
+
+
 
 # FILES
 *.zip
+istio-*
