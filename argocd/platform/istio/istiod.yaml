@@ -1,0 +1,57 @@
+# Installs the Istio control plane (istiod)
+# istiod manages sidecar injection, mTLS certificates, and traffic policy
+# Depends on: istio-base (CRDs) and istio-cni
+# Version: 1.26.0 — compatible with Kubernetes 1.29-1.32
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Deploys after base and CNI
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: istiod
+    targetRevision: 1.26.0
+    helm:
+      releaseName: istiod
+      values: |
+        pilot:
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        # Enable Prometheus metrics scraping on all proxies
+        meshConfig:
+          defaultConfig:
+            proxyStatsMatcher:
+              # Expose all Envoy stats to Prometheus
+              inclusionRegexps:
+                - ".*"
+          defaultProviders:
+            metrics:
+              - prometheus
+          # Merge Envoy stats into the app pod's /metrics endpoint
+          enablePrometheusMerge: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true

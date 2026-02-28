@@ -1,0 +1,31 @@
+# Deploys Grafana datasource ConfigMaps
+# Grafana sidecar watches for ConfigMaps with label grafana_datasource=1
+# and loads them automatically — no Grafana restart needed
+# Datasources: Prometheus (default) and Loki
+# Note: datasources are also defined in prometheus-values.yaml
+# ConfigMap is the authoritative source and overrides Helm values on load
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-datasources
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/monitoring/datasources
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

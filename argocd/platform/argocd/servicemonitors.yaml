@@ -1,0 +1,29 @@
+# Deploys ServiceMonitors for ArgoCD components
+# Covers: argocd-metrics, argocd-server-metrics, argocd-repo-server
+# ServiceMonitors live in the argocd namespace but are scraped by Prometheus
+# in the monitoring namespace (cross-namespace scraping enabled via namespaceSelector: any: true)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-servicemonitors
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/argocd/servicemonitors
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

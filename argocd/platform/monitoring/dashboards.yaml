@@ -1,0 +1,31 @@
+# Deploys all Grafana dashboard ConfigMaps
+# Grafana sidecar (k8s-sidecar) watches for ConfigMaps with label grafana_dashboard=1
+# and hot-reloads them into Grafana without restart
+# To add a dashboard: add a JSON file in the relevant subfolder and update the ConfigMap
+# Folder structure is driven by the annotation k8s-sidecar-target-directory
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-dashboards
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/monitoring/dashboards
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Required — dashboard ConfigMaps exceed the 262144-byte annotation limit
+      - ServerSideApply=true

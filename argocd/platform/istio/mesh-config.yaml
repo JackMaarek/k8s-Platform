@@ -1,0 +1,33 @@
+# Deploys Istio traffic management config via the internal Helm chart
+# Generates VirtualServices, DestinationRules and AuthorizationPolicies
+# from the app list defined in istio/helm/values.yaml
+# To add a new app to the mesh: edit istio/helm/values.yaml
+# Depends on: istio-gateway, istio-security
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-mesh-config
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: istio/helm
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true

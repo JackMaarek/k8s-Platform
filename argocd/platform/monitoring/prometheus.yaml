@@ -1,0 +1,39 @@
+# Installs kube-prometheus-stack: Prometheus, Grafana, AlertManager, node-exporter, kube-state-metrics
+# Values file: kubernetes/helm/monitoring/prometheus-values.yaml
+# Grafana admin credentials come from SealedSecret grafana-admin-credentials (sealed at bootstrap)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  sources:
+    # Prometheus community Helm chart
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 82.4.2
+      helm:
+        releaseName: prometheus
+        valueFiles:
+          # Values from the platform repo
+          - $values/kubernetes/helm/monitoring/prometheus-values.yaml
+    # Platform repo — provides the values files via $values ref
+    - repoURL: https://github.com/PodYourLife/k8s-platform.git
+      targetRevision: HEAD
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true

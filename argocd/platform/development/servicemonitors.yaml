@@ -1,0 +1,28 @@
+# Deploys ServiceMonitors for apps in the development namespace
+# Covers: lpcdm, sample-app
+# Add a new ServiceMonitor here when deploying a new app that exposes /metrics
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: development-servicemonitors
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/development/servicemonitors
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: development
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

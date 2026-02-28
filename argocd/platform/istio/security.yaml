@@ -1,0 +1,31 @@
+# Deploys Istio security policies — strict mTLS across the mesh
+# Managed by ArgoCD — any manual change will be reverted (selfHeal: true)
+# Depends on: istiod
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-security
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Security policies applied after the mesh is up
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: istio/security
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

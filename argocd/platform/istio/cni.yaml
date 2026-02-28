@@ -1,0 +1,35 @@
+# Installs the Istio CNI plugin
+# CNI handles iptables rules at the node level instead of via init containers
+# Required to avoid NET_ADMIN privilege on app pods (PodSecurity compliance)
+# Must sync before istiod
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-cni
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # CNI must be ready before istiod starts injecting sidecars
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: cni
+    targetRevision: 1.26.0
+    helm:
+      releaseName: istio-cni
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true

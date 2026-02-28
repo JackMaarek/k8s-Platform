@@ -1,0 +1,35 @@
+# Installs Istio base CRDs and cluster-wide resources
+# Must sync before istiod — istiod depends on these CRDs
+# Chart: https://istio-release.storage.googleapis.com/charts
+# Version: 1.26.0 — compatible with Kubernetes 1.29-1.32
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-base
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # base must be synced before istiod
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: base
+    targetRevision: 1.26.0
+    helm:
+      releaseName: istio-base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true

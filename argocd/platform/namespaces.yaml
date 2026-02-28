@@ -1,0 +1,29 @@
+# Manages all cluster namespaces via GitOps
+# Namespaces include PodSecurity labels and Istio injection labels
+# Any namespace change must go through this Application — no manual kubectl create namespace
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: namespaces
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: Platform
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: kubernetes/namespaces
+
+  destination:
+    server: https://kubernetes.default.svc
+    # Namespaces are cluster-scoped — destination namespace is ignored
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

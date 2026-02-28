@@ -1,0 +1,29 @@
+# Deploys Istio telemetry config — enables istio_* metrics for Prometheus
+# Depends on: istiod, istio-security
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-telemetry
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
+    targetRevision: HEAD
+    path: istio/telemetry
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
