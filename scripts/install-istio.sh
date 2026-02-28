@@ -40,8 +40,19 @@ install_istioctl() {
 }
 
 install_istio() {
-  log_info "Installing Istio with default profile..."
-  istioctl install --set profile=default -y
+  if kubectl get namespace istio-system &>/dev/null && \
+     kubectl get deployment istiod -n istio-system &>/dev/null; then
+    log_warn "Istio already installed — skipping"
+    return 0
+  fi
+
+  log_info "Installing Istio 1.26 with CNI plugin..."
+  istioctl install \
+    --set profile=default \
+    --set components.cni.enabled=true \
+    --set tag=1.26.0 \
+    -y
+
   log_success "Istio installed"
 
   log_info "Verifying installation..."

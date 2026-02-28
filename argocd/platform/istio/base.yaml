@@ -33,3 +33,11 @@ spec:
     syncOptions:
       - ServerSideApply=true
       - CreateNamespace=true
+
+#For drift issues @todo: cronjob to sync drift everyday..
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istiod-default-validator
+      jsonPointers:
+        - /webhooks/0/failurePolicy

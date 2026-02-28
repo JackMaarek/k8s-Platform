@@ -46,34 +46,80 @@ add_helm_repos() {
   log_info "Adding Helm repositories..."
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
   helm repo add grafana https://grafana.github.io/helm-charts
+  # Remove dead repo
+  helm repo remove kiwigrid 2>/dev/null || true
   helm repo update
   log_success "Helm repositories updated"
 }
 
+seal_grafana_secret() {
+  local secrets_file="$ROOT_DIR/.grafana-secrets"
+
+  if [ ! -f "$secrets_file" ]; then
+    log_warn "No .grafana-secrets file found — creating with default password"
+    cat > "$secrets_file" <<EOF
+GRAFANA_ADMIN_PASSWORD=admin123
+GRAFANA_ADMIN_USER=admin
+EOF
+    log_warn "Edit $secrets_file to change your password"
+  fi
+
+  source "$secrets_file"
+
+  log_info "Sealing Grafana secret with current cluster key..."
+
+  mkdir -p "$ROOT_DIR/kubernetes/secrets/monitoring"
+
+  kubectl create secret generic grafana-admin-credentials \
+    -n monitoring \
+    --from-literal=admin-password="$GRAFANA_ADMIN_PASSWORD" \
+    --from-literal=admin-user="$GRAFANA_ADMIN_USER" \
+    --dry-run=client -o yaml \
+  | kubeseal \
+    --controller-name=sealed-secrets \
+    --controller-namespace=kube-system \
+    --format yaml \
+  > "$ROOT_DIR/kubernetes/secrets/monitoring/grafana-admin-credentials.yaml"
+
+  kubectl apply -f "$ROOT_DIR/kubernetes/secrets/monitoring/grafana-admin-credentials.yaml"
+  log_success "Grafana secret sealed and applied"
+}
+
 install_prometheus_stack() {
+  if helm status prometheus -n monitoring &>/dev/null; then
+    log_warn "kube-prometheus-stack already installed — skipping"
+    return 0
+  fi
   log_info "Installing kube-prometheus-stack..."
   helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
     --namespace monitoring \
     --values "$ROOT_DIR/kubernetes/helm/monitoring/prometheus-values.yaml" \
-    --timeout 10m \
-    --wait
-  wait_for_pods "app.kubernetes.io/name=grafana" "monitoring"
-  wait_for_pods "app.kubernetes.io/name=prometheus" "monitoring"
+    --timeout 15m
+  # Wait only on core components, not node-exporter
+  wait_for_pods "app.kubernetes.io/name=grafana" "monitoring" "300s"
+  wait_for_pods "app.kubernetes.io/name=prometheus" "monitoring" "300s"
   log_success "kube-prometheus-stack installed"
 }
 
 install_loki() {
+  if helm status loki -n monitoring &>/dev/null; then
+    log_warn "Loki already installed — skipping"
+    return 0
+  fi
   log_info "Installing Loki..."
   helm upgrade --install loki grafana/loki \
     --namespace monitoring \
     --values "$ROOT_DIR/kubernetes/helm/monitoring/loki-values.yaml" \
     --timeout 10m \
     --wait
-  wait_for_pods "app.kubernetes.io/name=loki" "monitoring"
   log_success "Loki installed"
 }
 
 install_promtail() {
+  if helm status promtail -n monitoring &>/dev/null; then
+    log_warn "Promtail already installed — skipping"
+    return 0
+  fi
   log_info "Installing Promtail..."
   helm upgrade --install promtail grafana/promtail \
     --namespace monitoring \
@@ -84,12 +130,13 @@ install_promtail() {
 }
 
 apply_grafana_config() {
-  # Apply datasources and dashboards ConfigMaps
   log_info "Applying Grafana datasources..."
-  kubectl apply -f "$ROOT_DIR/kubernetes/manifests/grafana/datasources.yaml"
+  kubectl apply --server-side --force-conflicts \
+    -f "$ROOT_DIR/kubernetes/manifests/grafana/datasources.yaml"
 
   log_info "Applying Grafana dashboards..."
-  kubectl apply -f "$ROOT_DIR/kubernetes/manifests/grafana/dashboards/"
+  kubectl apply --server-side --force-conflicts \
+    -f "$ROOT_DIR/kubernetes/manifests/grafana/dashboards/"
   log_success "Grafana config applied"
 }
 
@@ -101,9 +148,8 @@ apply_servicemonitors() {
 
 print_access() {
   local grafana_password
-  grafana_password=$(kubectl get secret prometheus-grafana \
-    -n monitoring \
-    -o jsonpath="{.data.admin-password}" | base64 -d)
+  grafana_password=$(grep GRAFANA_ADMIN_PASSWORD "$ROOT_DIR/.grafana-secrets" \
+    | cut -d= -f2 || echo "see .grafana-secrets")
 
   echo ""
   log_success "Monitoring stack ready"
@@ -125,6 +171,7 @@ print_access() {
 main() {
   check_prereqs
   add_helm_repos
+  seal_grafana_secret
   install_prometheus_stack
   install_loki
   install_promtail

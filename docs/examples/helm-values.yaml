@@ -1,0 +1,73 @@
+# Example per-app Helm values override
+# Copy to kubernetes/helm/values/<app-name>.yaml and adjust for your app.
+# All keys are optional — only override what differs from the chart defaults
+# (kubernetes/helm/sample-app/values.yaml).
+
+nameOverride: "<app-name>"
+
+image:
+  repository: ghcr.io/podyourlife/<app-name>
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+# Inject a SealedSecret as env vars (generated with scripts/generate-seal.sh)
+secret:
+  enabled: true
+  name: <app-name>-secret
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true  # set to false for nginx-based apps
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  port: 80
+  targetPort: 8080
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - <app-name>
+          topologyKey: kubernetes.io/hostname
+
+# Optional writable volumes (required for nginx — /var/cache/nginx, /var/run)
+volumes: []
+volumeMounts: []

@@ -1,12 +1,18 @@
+# Example ArgoCD Application manifest
+# Copy to argocd/applications/<app-name>.yaml and replace <app-name> with your app name.
+#
+# The Helm chart at kubernetes/helm/sample-app/ is the shared template.
+# App-specific values live in kubernetes/helm/values/<app-name>.yaml.
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: lpcdm
+  name: <app-name>
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: applications
+  project: default
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
@@ -14,10 +20,7 @@ spec:
     path: kubernetes/helm/sample-app
     helm:
       valueFiles:
-        - ../../helm/values/lpcdm.yaml
-      parameters:
-        - name: image.tag
-          value: "latest"
+        - ../../helm/values/<app-name>.yaml
 
   destination:
     server: https://kubernetes.default.svc
@@ -45,5 +48,4 @@ spec:
     - group: apps
       kind: Deployment
       jsonPointers:
-        - /spec/replicas
-
+        - /spec/replicas  # HPA manages replica count
