@@ -203,12 +203,3 @@ main() {
 }
 
 main "$@"
-
-argocd app diff istio-base
-lpcdm — Degraded
-Normal — ImagePullBackOff sur l'image inexistante.
-istio-gateway — Unknown
-bashargocd app get istio-gateway --show-operation
-Commence par prometheus et grafana-dashboards — ce sont les deux qui bloquent le monitoring. Partage le output de :
-bashargocd app get prometheus
-argocd app get grafana-dashboards
