@@ -13,7 +13,7 @@ metadata:
     # CNI must be ready before istiod starts injecting sidecars
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  project: default
+  project: platform
 
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts

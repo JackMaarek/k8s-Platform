@@ -12,19 +12,20 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: <project>
 
   source:
-    repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: HEAD
-    path: kubernetes/helm/sample-app
+    repoURL: <repo-url>
+    targetRevision: <revision>
+    path: kubernetes/helm/<app-name>
     helm:
       valueFiles:
-        - ../../helm/values/<app-name>.yaml
+        - values.yaml
+        - values-<namespace>.yaml
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: development
+    namespace: <namespace>
 
   syncPolicy:
     automated:
@@ -32,7 +33,7 @@ spec:
       selfHeal: true
       allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+      - CreateNamespace=false
       - PrunePropagationPolicy=foreground
       - PruneLast=true
     retry:

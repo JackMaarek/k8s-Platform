@@ -13,7 +13,7 @@ metadata:
     # Deploys after base and CNI
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  project: default
+  project: platform
 
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts

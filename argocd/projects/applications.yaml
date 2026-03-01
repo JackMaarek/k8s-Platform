@@ -1,0 +1,74 @@
+# AppProject: applications
+# Scope: product applications — font-end, back-end and future services
+# Allowed destinations: development, staging, production
+# No cluster-scoped resource access — apps don't touch CRDs or ClusterRoles
+# dev-team can sync to development/staging; prod requires platform-admin approval
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Product applications — lpcdm and future services"
+
+  sourceRepos:
+    - https://github.com/PodYourLife/k8s-platform.git
+
+  destinations:
+    - namespace: development
+      server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: production
+      server: https://kubernetes.default.svc
+
+  # No cluster-scoped resources — apps are namespace-scoped only
+  clusterResourceWhitelist: []
+
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: ReplicaSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Pod
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.istio.io
+      kind: VirtualService
+    - group: networking.istio.io
+      kind: DestinationRule
+    - group: security.istio.io
+      kind: AuthorizationPolicy
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+
+  orphanedResources:
+    warn: true
+
+  roles:
+    - name: app-deployer
+      description: "Deploy to development and staging"
+      policies:
+        - p, proj:applications:app-deployer, applications, get, applications/*, allow
+        - p, proj:applications:app-deployer, applications, sync, applications/lpcdm, allow
+        - p, proj:applications:app-deployer, applications, sync, applications/lpcdm-staging, allow
+        - p, proj:applications:app-deployer, applications, override, applications/*, allow
+      groups:
+        - dev-team
+    - name: app-admin
+      description: "Full access including production sync"
+      policies:
+        - p, proj:applications:app-admin, applications, *, applications/*, allow
+      groups:
+        - platform-team

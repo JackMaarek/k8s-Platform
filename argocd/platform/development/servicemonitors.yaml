@@ -1,9 +1,15 @@
-# Deploys ServiceMonitors for apps in the development namespace
-# Covers: lpcdm, sample-app
-# Add a new ServiceMonitor here when deploying a new app that exposes /metrics
-#
 # Wave 6 — after prometheus (wave 4):
 # ServiceMonitor CRD must exist before applying these resources
+
+# This Application is intentionally minimal in the template — it covers
+# the sample-app fixture used to validate the infra during bootstrap.
+#
+# When platform-bot onboards a new app with --monitor, it generates a
+# ServiceMonitor manifest in kubernetes/manifests/<namespace>/servicemonitors/
+# and commits it to the target repo. ArgoCD prune: true will pick it up
+# automatically on the next sync — no changes needed here.
+#
+# Wave 6 — ServiceMonitor CRD must exist (prometheus wave 4) before this syncs
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -14,7 +20,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  project: default
+  project: platform
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git

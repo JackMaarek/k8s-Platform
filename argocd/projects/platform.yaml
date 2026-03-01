@@ -1,0 +1,77 @@
+# AppProject: platform
+# Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
+# Allowed destinations: istio-system, monitoring, argocd, kube-system
+# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
+# Only platform-admin role can sync — dev-team has read-only access
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Platform infrastructure — Istio, monitoring, sealed-secrets, namespaces"
+
+  sourceRepos:
+    - https://github.com/PodYourLife/k8s-platform.git
+    - https://istio-release.storage.googleapis.com/charts
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+    - https://charts.bitnami.com/bitnami
+    - https://helm.releases.hashicorp.com
+    - https://sealed-secrets.github.io/helm-charts
+
+  destinations:
+    - namespace: istio-system
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+
+  # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: networking.istio.io
+      kind: "*"
+    - group: security.istio.io
+      kind: "*"
+    - group: telemetry.istio.io
+      kind: "*"
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Orphan resources allowed — Helm sometimes leaves behind CRDs on uninstall
+  orphanedResources:
+    warn: true
+
+  roles:
+    - name: platform-admin
+      description: "Full sync access to platform apps"
+      policies:
+        - p, proj:platform:platform-admin, applications, *, platform/*, allow
+        - p, proj:platform:platform-admin, repositories, *, *, allow
+      groups:
+        - platform-team
+    - name: platform-readonly
+      description: "Read-only access for dev-team"
+      policies:
+        - p, proj:platform:platform-readonly, applications, get, platform/*, allow
+      groups:
+        - dev-team

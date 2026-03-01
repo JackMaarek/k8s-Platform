@@ -13,7 +13,7 @@ metadata:
     # base must be synced before istiod
     argocd.argoproj.io/sync-wave: "-2"
 spec:
-  project: default
+  project: platform
 
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts
@@ -34,10 +34,17 @@ spec:
       - ServerSideApply=true
       - CreateNamespace=true
 
-#For drift issues @todo: cronjob to sync drift everyday..
+
+  # Both Istio validators drift their failurePolicy at runtime (Fail → Ignore)
+  # ArgoCD would otherwise report OutOfSync on every reconcile loop
   ignoreDifferences:
     - group: admissionregistration.k8s.io
       kind: ValidatingWebhookConfiguration
       name: istiod-default-validator
+      jsonPointers:
+        - /webhooks/0/failurePolicy
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istio-validator-istio-system
       jsonPointers:
         - /webhooks/0/failurePolicy
