@@ -32,4 +32,4 @@ scripts/*_SECRET.md
 
 # FILES
 *.zip
-istio-*
+istio-*/*
