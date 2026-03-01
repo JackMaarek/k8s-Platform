@@ -58,11 +58,29 @@ secret:
   enabled: true
   name: lpcdm-supabase-secret
 
+# Copy files into emptyDir to allow sed commands on entrypoint script
+initContainers:
+  - name: copy-assets
+    image: ghcr.io/podyourlife/lpcdm:latest
+    command:
+      - sh
+      - -c
+      - cp -r /usr/share/nginx/html/assets/. /assets/
+    volumeMounts:
+      - name: nginx-assets
+        mountPath: /assets
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+
 # Allow ngnix write on path
 volumes:
   - name: nginx-cache
     emptyDir: {}
   - name: nginx-run
+    emptyDir: {}
+  - name: nginx-assets
     emptyDir: {}
 
 volumeMounts:
@@ -70,3 +88,5 @@ volumeMounts:
     mountPath: /var/cache/nginx
   - name: nginx-run
     mountPath: /var/run
+  - name: nginx-assets
+    mountPath: /usr/share/nginx/html/assets
