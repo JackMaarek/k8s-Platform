@@ -14,7 +14,7 @@ spec:
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: HEAD
+    targetRevision: __TARGET_REVISION__
     path: istio/telemetry
 
   destination:

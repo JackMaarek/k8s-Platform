@@ -28,6 +28,15 @@ source "$LIB/secrets.sh"
 source "$LIB/argocd.sh"
 source "$LIB/summary.sh"
 
+# Usage: ./scripts/setup-local.sh [--branch <branch>]
+BRANCH="HEAD"
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --branch) BRANCH="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
 main() {
   echo ""
   echo -e "${BLUE}  PodYourLife — k8s-platform local setup${NC}"
@@ -60,6 +69,12 @@ main() {
   fi
 
   apply_secrets "monitoring"
+
+  # Hydrate targetRevision placeholder
+  log_info "Setting targetRevision to '$BRANCH'..."
+  find "$ROOT_DIR/argocd/platform/" -name "*.yaml" -exec \
+    sed -i '' "s/__TARGET_REVISION__/$BRANCH/g" {} +
+  log_success "targetRevision set to '$BRANCH'"
 
   apply_projects
   apply_platform
