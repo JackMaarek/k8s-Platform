@@ -24,6 +24,9 @@ prometheusOperator:
 prometheus:
   enabled: true
   prometheusSpec:
+    # Injects the cluster label through all metrics
+    externalLabels:
+      cluster: minikube
     namespaceSelector:
       any: true
     serviceMonitorSelector: {}
