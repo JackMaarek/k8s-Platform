@@ -24,7 +24,7 @@ spec:
         valueFiles:
           - $values/kubernetes/helm/monitoring/promtail-values.yaml
     - repoURL: https://github.com/PodYourLife/k8s-platform.git
-      targetRevision: HEAD
+      targetRevision: local-test
       ref: values
 
   destination:

@@ -16,7 +16,7 @@ spec:
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: HEAD
+    targetRevision: local-test
     path: istio/security
 
   destination:

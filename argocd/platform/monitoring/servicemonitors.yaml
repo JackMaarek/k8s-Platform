@@ -20,7 +20,7 @@ spec:
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: HEAD
+    targetRevision: local-test
     path: kubernetes/manifests/monitoring/servicemonitors
 
   destination:
