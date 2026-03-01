@@ -2,8 +2,9 @@
 # Entry point for all external traffic into the mesh
 # Depends on: istiod
 #
-# Minikube: run 'minikube tunnel' to expose the LoadBalancer IP
-# EKS/GKE: LoadBalancer provisions a cloud NLB automatically
+# Default service type: LoadBalancer
+# Minikube: run 'minikube tunnel' to get an external IP
+# EKS/GKE: cloud NLB provisioned automatically — no config needed
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -16,17 +17,12 @@ metadata:
 spec:
   project: default
 
-  sources:
-    - repoURL: https://istio-release.storage.googleapis.com/charts
-      chart: gateway
-      targetRevision: 1.26.4
-      helm:
-        releaseName: istio-ingressgateway
-        valueFiles:
-          - $values/istio/helm/gateway-values.yaml
-    - repoURL: https://github.com/PodYourLife/k8s-platform.git
-      targetRevision: HEAD
-      ref: values
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: gateway
+    targetRevision: 1.26.4
+    helm:
+      releaseName: istio-ingressgateway
 
   destination:
     server: https://kubernetes.default.svc
