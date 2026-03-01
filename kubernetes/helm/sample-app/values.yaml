@@ -103,3 +103,6 @@ secret:
 # Optional writable volumes
 volumes: []
 volumeMounts: []
+
+# Optional init containers
+initContainers: []
