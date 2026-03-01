@@ -1,6 +1,10 @@
 # Manages all cluster namespaces via GitOps
 # Namespaces include PodSecurity labels and Istio injection labels
 # Any namespace change must go through this Application — no manual kubectl create namespace
+#
+# Wave -3 — must sync before everything else:
+# monitoring-namespace carries istio-injection: disabled
+# If prometheus syncs before this, Jobs will get sidecars and block indefinitely
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,6 +12,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
 spec:
   project: Platform
 
@@ -18,7 +24,6 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    # Namespaces are cluster-scoped — destination namespace is ignored
     namespace: default
 
   syncPolicy:

@@ -2,6 +2,9 @@
 # Covers: argocd-metrics, argocd-server-metrics, argocd-repo-server
 # ServiceMonitors live in the argocd namespace but are scraped by Prometheus
 # in the monitoring namespace (cross-namespace scraping enabled via namespaceSelector: any: true)
+#
+# Wave 6 — after prometheus (wave 4):
+# ServiceMonitor CRD must exist before applying these resources
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,6 +12,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: default
 

@@ -2,6 +2,10 @@
 # Covers: Loki, Promtail, Istio proxies (PodMonitor), Istio control plane
 # Prometheus discovers these via its serviceMonitorNamespaceSelector: any: true config
 # label release: prometheus must match the Prometheus operator selector
+#
+# Wave 6 — after prometheus + loki + promtail (wave 4-5):
+# ServiceMonitor CRD (monitoring.coreos.com) must exist before applying these resources
+# Loki and Promtail pods must exist for ServiceMonitors to resolve their selectors
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,6 +13,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: default
 

@@ -3,7 +3,10 @@
 # and loads them automatically — no Grafana restart needed
 # Datasources: Prometheus (default) and Loki
 # Note: datasources are also defined in prometheus-values.yaml
-# ConfigMap is the authoritative source and overrides Helm values on load
+# This ConfigMap is the authoritative source and overrides Helm values on load
+#
+# Wave 7 — after prometheus (wave 4):
+# Grafana pod must exist before datasources can be hot-reloaded by the sidecar
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,6 +14,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"
 spec:
   project: default
 

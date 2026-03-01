@@ -1,6 +1,8 @@
 # Installs Promtail — DaemonSet that ships pod logs to Loki
 # Runs on every node, tails /var/log/pods and forwards to Loki
 # Values file: kubernetes/helm/monitoring/promtail-values.yaml
+#
+# Wave 5 — after prometheus (wave 4), same wave as loki
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,6 +10,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   project: default
 

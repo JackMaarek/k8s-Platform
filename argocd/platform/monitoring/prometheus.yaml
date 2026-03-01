@@ -1,6 +1,10 @@
 # Installs kube-prometheus-stack: Prometheus, Grafana, AlertManager, node-exporter, kube-state-metrics
 # Values file: kubernetes/helm/monitoring/prometheus-values.yaml
 # Grafana admin credentials come from SealedSecret grafana-admin-credentials (sealed at bootstrap)
+#
+# Wave 4 — after Istio (wave 0-3) and after namespaces (wave -3):
+# monitoring namespace must have istio-injection: disabled before this syncs
+# otherwise admission-create Job gets a sidecar and blocks forever
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,20 +12,19 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   project: default
 
   sources:
-    # Prometheus community Helm chart
     - repoURL: https://prometheus-community.github.io/helm-charts
       chart: kube-prometheus-stack
       targetRevision: 82.4.2
       helm:
         releaseName: prometheus
         valueFiles:
-          # Values from the platform repo
           - $values/kubernetes/helm/monitoring/prometheus-values.yaml
-    # Platform repo — provides the values files via $values ref
     - repoURL: https://github.com/PodYourLife/k8s-platform.git
       targetRevision: HEAD
       ref: values

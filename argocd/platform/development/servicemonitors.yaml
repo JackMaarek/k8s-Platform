@@ -1,6 +1,9 @@
 # Deploys ServiceMonitors for apps in the development namespace
 # Covers: lpcdm, sample-app
 # Add a new ServiceMonitor here when deploying a new app that exposes /metrics
+#
+# Wave 6 — after prometheus (wave 4):
+# ServiceMonitor CRD must exist before applying these resources
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,6 +11,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: default
 

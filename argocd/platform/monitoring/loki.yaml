@@ -1,6 +1,10 @@
 # Installs Loki — log aggregation backend for Grafana
 # Receives logs from Promtail agents running on each node
 # Values file: kubernetes/helm/monitoring/loki-values.yaml
+#
+# Wave 5 — after prometheus (wave 4):
+# monitoring.coreos.com CRDs installed by prometheus must exist
+# before ServiceMonitors for Loki can be applied
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,6 +12,8 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   project: default
 
