@@ -1,0 +1,15 @@
+Court terme (avant prod)
+  1. ArgoCD AppProjects avec RBAC strict
+  2. NetworkPolicies natives par namespace
+  3. ResourceQuota + LimitRange
+  4. Kyverno — politique d'admission (images signées, labels obligatoires, no latest tag)
+
+Moyen terme
+  5. Vault ou 1Password pour remplacer les fichiers .secrets locaux
+  6. Trivy dans la CI pour bloquer les images vulnérables
+  7. Falco pour la détection runtime
+
+Long terme (compliance)
+  8. OPA/Gatekeeper pour CIS Benchmark
+  9. SBOM + attestations Sigstore/Cosign
+  10. Audit logs centralisés dans Loki

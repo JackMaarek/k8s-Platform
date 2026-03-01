@@ -1,19 +1,74 @@
 # Promtail Helm Chart Values
 # Chart: grafana/promtail
-# Not embed in to ensure security control with istio
-# Allows fetching nodes logs ensuring PodSecurity Ppolicies
+# Not embedded to ensure security control with Istio
+# Allows fetching node logs ensuring PodSecurity Policies
 
 config:
   clients:
     - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
   positions:
     filename: /run/promtail/positions.yaml
+
   scrape_configs:
     - job_name: kubernetes-pods
       kubernetes_sd_configs:
         - role: pod
+
       pipeline_stages:
+        # Parse CRI log format (timestamp, stream, flags, log)
         - cri: {}
+
+        # --- Noise reduction ---
+        # Drop kubernetes liveness/readiness probe logs — high volume, zero value
+        - drop:
+            expression: ".*kube-probe.*"
+
+        # Drop Prometheus scrape logs — internal traffic, not applicative
+        - drop:
+            expression: ".*/metrics.*"
+
+        # Drop Istio proxy health check logs
+        - drop:
+            expression: ".*istio-probe.*"
+
+        # --- JSON applicative logs ---
+        # If the app logs JSON (e.g. Node.js, Python), extract structured fields
+        # Falls through silently if the log is not JSON (e.g. nginx access log)
+        - json:
+            expressions:
+              json_level: level
+              json_message: message
+              json_error: error
+            source: ""
+
+        # Promote JSON fields to Loki labels for fast filtering
+        # {namespace="development", level="error"} will use the index
+        - labels:
+            level: json_level
+
+        # --- Nginx access log parsing ---
+        # Parse nginx combined log format for non-JSON apps (lpcdm, static sites)
+        # Extracts: method, path, status, bytes, user_agent
+        - match:
+            selector: '{container="lpcdm"}'
+            stages:
+              - regex:
+                  expression: '^(?P<remote_addr>[\w\.:\-]+) - [^\[]*\[(?P<time>[^\]]+)\] "(?P<method>\w+) (?P<path>[^\s"]+)[^"]*" (?P<status>\d+) (?P<bytes>\d+)'
+              - labels:
+                  method:
+                  status:
+              # Tag 4xx and 5xx as errors for unified alerting
+              - match:
+                  selector: '{status=~"[45].."}'
+                  stages:
+                    - labels:
+                        level: error
+
+        # --- Metadata labels ---
+        # These labels are used for all log queries in Grafana
+        # {namespace="X", pod="Y"} uses the index for fast lookup
+
       relabel_configs:
         - source_labels: [__meta_kubernetes_pod_node_name]
           target_label: __host__
@@ -25,8 +80,17 @@ config:
           target_label: pod
         - source_labels: [__meta_kubernetes_pod_container_name]
           target_label: container
+        # Add app name label for easy filtering across deployments
+        - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+          target_label: app
+        # Add environment label from namespace
+        - source_labels: [__meta_kubernetes_namespace]
+          regex: development|staging|production
+          target_label: environment
+          replacement: $1
 
-# PodIsolation
+# PodSecurity — runs as root to read host log files
+# DAC_READ_SEARCH is required to read /var/log/pods on the host
 podSecurityContext:
   runAsUser: 0
   runAsGroup: 0
@@ -46,7 +110,7 @@ resources:
     cpu: 200m
     memory: 256Mi
 
-# Log Volumes
+# Mount host log directories
 volumes:
   - name: run
     hostPath:
@@ -68,6 +132,7 @@ volumeMounts:
     mountPath: /var/log/pods
     readOnly: true
 
+# Allow scheduling on control-plane nodes to collect system logs
 tolerations:
   - key: node-role.kubernetes.io/master
     operator: Exists

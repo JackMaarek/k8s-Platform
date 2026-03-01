@@ -6,7 +6,7 @@
 #
 # Wave 8 — last in the monitoring chain:
 # Grafana sidecar must be running before dashboards can be loaded
-# datasources (wave 7) must exist so dashboards have a working datasource on first load
+# datasources (wave 8) must exist so dashboards have a working datasource on first load
 # ServerSideApply required — dashboard ConfigMaps exceed the 262144-byte annotation limit
 apiVersion: argoproj.io/v1alpha1
 kind: Application

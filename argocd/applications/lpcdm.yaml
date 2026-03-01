@@ -47,3 +47,5 @@ spec:
       jsonPointers:
         - /spec/replicas
 
+imagePullSecrets:
+  - name: ghcr-pull-secret
