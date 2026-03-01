@@ -33,6 +33,12 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: development
       server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: production
+      server: https://kubernetes.default.svc
+    - namespace: default
+      server: https://kubernetes.default.svc
 
   # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
   clusterResourceWhitelist:
