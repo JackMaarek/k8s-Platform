@@ -1,0 +1,8 @@
+# Prevent local-dev fixtures from being accidentally merged into main.
+# Files listed here will always cause merge conflicts if someone tries
+# to merge local-dev → main — forcing a conscious decision.
+argocd/applications/lpcdm.yaml                         merge=ours
+argocd/projects/quantum.yaml                           merge=ours
+kubernetes/helm/values/lpcdm.yaml                      merge=ours
+kubernetes/manifests/development/servicemonitors/lpcdm.yaml  merge=ours
+kubernetes/secrets/development/lpcdm-supabase-secret.yaml    merge=ours

@@ -1,0 +1,68 @@
+# AppProject: quantum
+# Scope: quantum-CNN GPU workloads — isolated project for ML team
+# LOCAL-DEV ONLY — not part of the template on main.
+# Generated here as an example of a custom project created via:
+#   platform-bot project add --name quantum --team quantum-team --namespaces quantum
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: quantum
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "quantum-CNN GPU workloads — ML training and inference"
+
+  sourceRepos:
+    - https://github.com/PodYourLife/k8s-platform.git
+
+  destinations:
+    - namespace: quantum
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist: []
+
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: batch
+      kind: Job
+    - group: batch
+      kind: CronJob
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: networking.istio.io
+      kind: VirtualService
+    - group: networking.istio.io
+      kind: DestinationRule
+    - group: security.istio.io
+      kind: AuthorizationPolicy
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+
+  orphanedResources:
+    warn: true
+
+  roles:
+    - name: quantum-deployer
+      description: "Full deploy access within quantum namespace"
+      policies:
+        - p, proj:quantum:quantum-deployer, applications, *, quantum/*, allow
+      groups:
+        - quantum-team
+    - name: quantum-admin
+      description: "Platform support access"
+      policies:
+        - p, proj:quantum:quantum-admin, applications, *, quantum/*, allow
+      groups:
+        - platform-team
