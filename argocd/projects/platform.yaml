@@ -1,6 +1,6 @@
 # AppProject: platform
 # Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
-# Allowed destinations: istio-system, monitoring, argocd, kube-system
+# Allowed destinations: istio-system, monitoring, argocd, kube-system, development
 # Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
 # Only platform-admin role can sync — dev-team has read-only access
 apiVersion: argoproj.io/v1alpha1
@@ -32,6 +32,8 @@ spec:
     - namespace: kube-system
       server: https://kubernetes.default.svc
     - namespace: development
+      server: https://kubernetes.default.svc
+    - namespace: default
       server: https://kubernetes.default.svc
 
   # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
