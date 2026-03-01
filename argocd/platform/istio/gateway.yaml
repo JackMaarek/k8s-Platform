@@ -23,7 +23,7 @@ spec:
       helm:
         releaseName: istio-ingressgateway
         valueFiles:
-          - - $values/istio/helm/gateway-values.yaml
+          - $values/istio/helm/gateway-values.yaml
     - repoURL: https://github.com/PodYourLife/k8s-platform.git
       targetRevision: HEAD
       ref: values
