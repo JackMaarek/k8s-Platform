@@ -61,13 +61,9 @@ volumes:
     emptyDir: {}
   - name: nginx-run
     emptyDir: {}
-  - name: nginx-html
-    emptyDir: {}
 
 volumeMounts:
   - name: nginx-cache
     mountPath: /var/cache/nginx
   - name: nginx-run
     mountPath: /var/run
-  - name: nginx-html
-    mountPath: /usr/share/nginx/html/assets
