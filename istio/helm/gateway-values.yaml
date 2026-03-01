@@ -1,3 +1,0 @@
-# Istio Ingress Gateway Values
-# Minikube: run 'minikube tunnel' to expose the LoadBalancer IP
-# EKS/GKE: LoadBalancer provisions a cloud NLB automatically — no change needed
