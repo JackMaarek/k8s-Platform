@@ -15,7 +15,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
 spec:
-  project: kube-system
+  project: platform
 
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
@@ -24,7 +24,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: platform
+    namespace: kube-system
 
   syncPolicy:
     automated:
