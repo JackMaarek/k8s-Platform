@@ -31,6 +31,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
+    - namespace: development
+      server: https://kubernetes.default.svc
 
   # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
   clusterResourceWhitelist:
