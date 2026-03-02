@@ -20,7 +20,7 @@ spec:
     - https://grafana.github.io/helm-charts
     - https://charts.bitnami.com/bitnami
     - https://helm.releases.hashicorp.com
-    - https://sealed-secrets.github.io/helm-charts
+    - https://charts.external-secrets.io
 
   destinations:
     - namespace: istio-system

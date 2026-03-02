@@ -3,18 +3,21 @@ set -euo pipefail
 # Bootstrap entrypoint for a local Minikube cluster.
 #
 # What this script does (and why each step is here, not in ArgoCD):
-#   1. Minikube       — cluster must exist before kubectl works
-#   2. Namespaces     — must exist before SealedSecrets can unseal into them
-#   3. Sealed Secrets — controller must be Ready before any SealedSecret is applied
-#   4. Secrets        — cluster-specific; re-sealed on each new cluster
-#   5. ArgoCD         — must be installed before we can submit Applications
-#   6. AppProjects    — must exist before Applications that reference them
-#   7. Platform apps  — ArgoCD takes over from here (Istio, monitoring, ...)
-#   8. App manifests  — product applications (empty on main, lpcdm on local-test)
+#   1. Minikube    — cluster must exist before kubectl works
+#   2. Namespaces  — must exist before secrets can be created
+#   3. ArgoCD      — must be installed before we can submit Applications
+#   4. AppProjects — must exist before Applications that reference them
+#   5. Platform    — ArgoCD takes over (Istio, monitoring, ESO, ...)
+#   6. Apps        — product Applications (empty on main)
+#
+# Secrets are managed by External Secrets Operator + AWS Secrets Manager.
+# ESO is deployed as a platform Application (wave -1).
+# See kubernetes/secrets/README.md for the secrets contract.
 #
 # Do NOT add helm install calls here — use ArgoCD Applications in argocd/platform/.
 #
-# Usage: ./scripts/setup-local.sh
+# Usage: ./scripts/setup-local.sh [--branch <branch>]
+#   --branch  targetRevision for all ArgoCD platform Applications (default: HEAD)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -24,56 +27,34 @@ source "$LIB/logging.sh"
 source "$LIB/prereqs.sh"
 source "$LIB/minikube.sh"
 source "$LIB/namespaces.sh"
-source "$LIB/secrets.sh"
 source "$LIB/argocd.sh"
 source "$LIB/summary.sh"
 
-# Usage: ./scripts/setup-local.sh [--branch <branch>]
 BRANCH="HEAD"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --branch) BRANCH="$2"; shift 2 ;;
-    *) shift ;;
+    *) log_warn "Unknown argument: $1"; shift ;;
   esac
 done
 
 main() {
   echo ""
-  echo -e "${BLUE}  PodYourLife — k8s-platform local setup${NC}"
+  echo -e "${BLUE}  k8s-platform local setup${NC}"
   echo ""
 
   check_prereqs
   start_minikube
   apply_namespaces
 
-  if ask_yn "Install Sealed Secrets?"; then
-    bash "$SCRIPT_DIR/install-sealed-secrets.sh" < /dev/tty
-  fi
-  wait_for_controller "sealed-secrets" "kube-system" "app.kubernetes.io/name=sealed-secrets"
-
-  apply_secrets "development"
-
   if ask_yn "Install ArgoCD?"; then
     bash "$SCRIPT_DIR/install-argocd.sh" < /dev/tty
   fi
 
-  # Repo credentials — ArgoCD needs this to pull from the private GitHub repo.
-  # Must be applied after ArgoCD is installed and before platform apps sync.
-  if [ -f "$ROOT_DIR/kubernetes/secrets/argocd/argocd-repo-creds.yaml" ]; then
-    log_info "Applying ArgoCD repo credentials..."
-    kubectl apply -f "$ROOT_DIR/kubernetes/secrets/argocd/argocd-repo-creds.yaml"
-    log_success "Repo credentials applied"
-  else
-    log_warn "No argocd-repo-creds.yaml found — ArgoCD won't sync private repos"
-    log_warn "Run: ./scripts/generate-seal.sh --name argocd-repo-creds --namespace argocd"
-  fi
-
-  apply_secrets "monitoring"
-
-  # Hydrate targetRevision placeholder
+  # Hydrate targetRevision placeholder in all platform Applications
   log_info "Setting targetRevision to '$BRANCH'..."
-  find "$ROOT_DIR/argocd/platform/" -name "*.yaml" -exec \
-    sed -i '' "s/__TARGET_REVISION__/$BRANCH/g" {} +
+  find "$ROOT_DIR/argocd/platform/" -name "*.yaml" \
+    -exec sed -i '' "s/__TARGET_REVISION__/$BRANCH/g" {} +
   log_success "targetRevision set to '$BRANCH'"
 
   apply_projects
