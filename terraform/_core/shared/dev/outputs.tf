@@ -75,6 +75,12 @@ output "cluster_autoscaler_role_arn" {
 }
 
 
+output "aws_lbc_role_arn" {
+  description = "AWS Load Balancer Controller IRSA role ARN"
+  value       = module.irsa_aws_lbc.role_arn
+}
+
+
 # ── kubectl ────────────────────────────────────────────────────────────────────
 
 output "configure_kubectl" {
