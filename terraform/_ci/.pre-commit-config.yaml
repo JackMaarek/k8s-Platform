@@ -1,0 +1,51 @@
+# .pre-commit-config.yaml
+# Pre-commit hooks for Terraform code quality.
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.0
+    hooks:
+      # Format all Terraform files
+      - id: terraform_fmt
+        args:
+          - --args=-recursive
+
+      # Validate all configurations
+      - id: terraform_validate
+        args:
+          - --args=-no-color
+
+      # Run TFLint on all modules and environments
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/_ci/.tflint.hcl
+
+      # Check for hardcoded credentials
+      - id: terraform_trivy
+        args:
+          - --args=--skip-dirs=".terraform"
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Prevent committing large files
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+
+      # Catch accidental debug leftovers
+      - id: check-merge-conflict
+
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+
+      # Validate YAML files (GitHub Actions, ArgoCD, etc.)
+      - id: check-yaml
+        args: ["--unsafe"]
+
+      # Detect hardcoded secrets
+      - id: detect-private-key

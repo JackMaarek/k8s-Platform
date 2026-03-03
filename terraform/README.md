@@ -1,216 +1,155 @@
-# Terraform Infrastructure as Code
+# terraform
 
-## Overview
-Complete AWS infrastructure for EKS cluster with VPC, networking, and supporting resources.
+Domain-Driven infrastructure as code for k8s-platform.
 
 ## Structure
+
 ```
 terraform/
-├── modules/           # Reusable Terraform modules
-│   ├── vpc/           # VPC with public/private subnets
-│   ├── eks/           # EKS cluster control plane
-│   └── nodegroup/     # EKS managed node groups
-└── environments/      # Environment-specific configurations
-    ├── dev/           # Development environment
-    ├── staging/       # Staging environment
-    └── prod/          # Production environment
+  _core/
+    modules/          # Reusable SRP modules (vpc, eks, nodegroup, irsa, secrets-manager)
+    shared/           # Cross-domain cluster foundation (VPC, EKS, OIDC, ESO, Autoscaler)
+      dev/
+      staging/
+      prod/
+  domains/
+    platform/         # Platform team — node groups, ArgoCD image updater IRSA
+      dev/
+      staging/
+      prod/
+    {domain}/         # Added by: platform-bot domain add --name {domain} --team {team}
+  _ci/
+    .terraform-version
+    .tflint.hcl
+    .pre-commit-config.yaml
+    github-actions/
 ```
 
-## Prerequisites
-- Terraform 1.6+
-- AWS CLI configured with appropriate credentials
-- S3 bucket for Terraform state
-- DynamoDB table for state locking
+## Apply order
 
-## Initial Setup
+Always apply `_core/shared` before any domain — domains consume shared outputs via remote state.
 
-### Create State Backend
+```
+_core/shared/dev  →  domains/platform/dev  →  domains/*/dev
+_core/shared/staging  →  ...
+_core/shared/prod  →  ...
+```
+
+## Bootstrap (first time)
+
 ```bash
-# Create S3 bucket for state
-aws s3 mb s3://your-terraform-state-bucket --region us-west-2
-
-# Enable versioning
+# 1. Create state backend (once per AWS account)
+aws s3 mb s3://k8s-platform-terraform-state --region eu-west-3
 aws s3api put-bucket-versioning \
-  --bucket your-terraform-state-bucket \
+  --bucket k8s-platform-terraform-state \
   --versioning-configuration Status=Enabled
-
-# Create DynamoDB table for locking
 aws dynamodb create-table \
-  --table-name terraform-lock-table \
+  --table-name k8s-platform-terraform-locks \
   --attribute-definitions AttributeName=LockID,AttributeType=S \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
-  --region us-west-2
+  --region eu-west-3
+
+# 2. Apply shared foundation
+cd _core/shared/dev
+terraform init && terraform apply
+
+# 3. Apply platform domain
+cd ../../../domains/platform/dev
+terraform init && terraform apply
+
+# 4. Configure kubectl
+aws eks update-kubeconfig --region eu-west-3 --name dev-k8s
 ```
 
-## Usage
+## Adding a new domain
 
-### Development Environment
+Domains are scaffolded by platform-bot:
+
 ```bash
-cd environments/dev
+platform-bot domain add --name data --team data-team
+```
 
-# Initialize Terraform
-terraform init
+This generates `domains/data/{dev,staging,prod}/` with:
+- `backend.tf`, `providers.tf`, `variables.tf`
+- `shared.tf` — remote_state reference to _core/shared
+- `nodegroups.tf`, `irsa.tf`, `outputs.tf` — pre-filled templates
 
-# Review planned changes
+## Local development
+
+```bash
+# Install tfenv and use pinned version
+tfenv install
+tfenv use
+
+# Install pre-commit hooks
+pre-commit install
+
+# Format
+terraform fmt -recursive
+
+# Lint
+tflint --config _ci/.tflint.hcl --chdir _core/shared/dev
+```
+
+## Access management
+
+### Developer access — AWS IAM Identity Center
+
+Zero static credentials. Developers authenticate via SSO and assume temporary IAM roles.
+
+```bash
+# One-time setup
+aws configure sso --profile dev-platform
+
+# Daily workflow
+aws sso login --profile dev-platform
+export AWS_PROFILE=dev-platform
 terraform plan
-
-# Apply infrastructure
-terraform apply
-
-# Configure kubectl
-aws eks update-kubeconfig --region us-west-2 --name dev-k8s-cluster
-
-# Verify cluster access
-kubectl get nodes
 ```
 
-### Staging Environment
+Permission matrix:
+
+| Group                | dev         | staging     | prod        |
+|----------------------|-------------|-------------|-------------|
+| platform-devs        | poweruser   | readonly    | readonly    |
+| platform-maintainers | poweruser   | poweruser   | readonly    |
+| CI (GitHub Actions)  | apply       | apply       | apply       |
+
+**Prod apply is CI-only — no human can apply to prod from a local machine.**
+
+Add developers: AWS console → IAM Identity Center → Users → assign to group.
+Switch IdP to Okta/Google: configure external IdP + SCIM in IAM Identity Center console — no Terraform changes required.
+
+### CI access — GitHub Actions OIDC
+
+No credentials stored in GitHub. The only GitHub secret is the role ARN.
+
+```yaml
+- uses: aws-actions/configure-aws-credentials@v4
+  with:
+    role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+    aws-region: eu-west-3
+```
+
+After first `terraform apply` on `_core/shared`:
 ```bash
-cd environments/staging
-terraform init
-terraform plan
-terraform apply
+terraform output github_plan_role_arn   # → AWS_TERRAFORM_PLAN_ROLE_ARN
+terraform output github_apply_role_arn  # → AWS_TERRAFORM_ROLE_ARN
 ```
 
-### Production Environment
-```bash
-cd environments/prod
-terraform init
-terraform plan
-terraform apply
-```
+## Compliance
 
-## Module Documentation
+Controls are graduated per environment:
 
-### VPC Module
-Creates a production-ready VPC with:
-- Public and private subnets across multiple AZs
-- Internet Gateway for public subnet access
-- NAT Gateways for private subnet egress (one per AZ)
-- Route tables with appropriate routes
-- Proper tagging for EKS integration
+| Control         | dev  | staging | prod |
+|-----------------|------|---------|------|
+| CloudTrail      | ✓    | ✓       | ✓    |
+| KMS CMK         | ✓    | ✓       | ✓    |
+| VPC Flow Logs   | ✓    | ✓       | ✓    |
+| GuardDuty       | ✗    | ✓       | ✓    |
+| AWS Config      | ✗    | ✓       | ✓    |
+| Log retention   | 365d | 365d    | 6yr  |
 
-**Inputs:**
-- `environment`: Environment name (dev/staging/prod)
-- `vpc_cidr`: VPC CIDR block
-- `private_subnet_cidrs`: List of private subnet CIDRs
-- `public_subnet_cidrs`: List of public subnet CIDRs
-- `availability_zones`: List of AZs to use
-- `tags`: Common tags for all resources
-
-**Outputs:**
-- `vpc_id`: VPC ID
-- `private_subnet_ids`: List of private subnet IDs
-- `public_subnet_ids`: List of public subnet IDs
-
-### EKS Module
-Creates EKS cluster with:
-- IAM roles and policies
-- Control plane with specified Kubernetes version
-- Public and private API endpoint access
-- Cluster logging enabled
-- Security group configuration
-
-**Inputs:**
-- `cluster_name`: EKS cluster name
-- `kubernetes_version`: Kubernetes version (default: 1.28)
-- `private_subnet_ids`: Private subnets for worker nodes
-- `public_subnet_ids`: Public subnets for load balancers
-- `public_access_cidrs`: CIDR blocks for API access
-- `tags`: Common tags
-
-**Outputs:**
-- `cluster_id`: EKS cluster ID
-- `cluster_endpoint`: API server endpoint
-- `cluster_security_group_id`: Cluster security group
-- `cluster_arn`: Cluster ARN
-- `cluster_certificate_authority_data`: CA data (sensitive)
-
-### Node Group Module
-Creates managed node groups with:
-- IAM roles with required policies
-- Launch templates with security best practices
-- Scaling configuration
-- Update strategy
-
-## Cost Considerations
-
-### Estimated Monthly Costs (us-west-2)
-- EKS Control Plane: ~$73/month
-- NAT Gateways (3): ~$97/month
-- EC2 Instances (t3.medium, 3 nodes): ~$90/month
-- Data Transfer: Variable
-- **Total: ~$260-300/month for dev environment**
-
-### Cost Optimization
-- Use Spot instances for non-critical workloads
-- Scale down non-prod environments outside business hours
-- Use single NAT gateway for dev/staging
-- Monitor and right-size instance types
-- Implement cluster autoscaling
-
-## Security Best Practices
-
-1. **Network Isolation**: Private subnets for worker nodes
-2. **API Access**: Restrict public access CIDRs in production
-3. **IAM**: Least privilege for all roles
-4. **Logging**: Enable all cluster log types
-5. **Encryption**: Enable encryption at rest for EBS volumes
-6. **Secrets**: Use AWS Secrets Manager or Parameter Store
-
-## Troubleshooting
-
-### State Lock Issues
-```bash
-# View locks
-aws dynamodb get-item \
-  --table-name terraform-lock-table \
-  --key '{"LockID":{"S":"your-state-path"}}'
-
-# Force unlock (use with caution)
-terraform force-unlock <lock-id>
-```
-
-### EKS Access Issues
-```bash
-# Update kubeconfig
-aws eks update-kubeconfig --region us-west-2 --name <cluster-name>
-
-# Test API access
-kubectl get svc
-
-# Check IAM authenticator
-aws sts get-caller-identity
-```
-
-### Resource Cleanup
-```bash
-# Destroy environment
-cd environments/dev
-terraform destroy
-
-# Verify all resources deleted
-aws eks list-clusters --region us-west-2
-aws ec2 describe-vpcs --filters "Name=tag:Environment,Values=dev"
-```
-
-## Maintenance
-
-### Updating Modules
-1. Make changes to module files
-2. Update module version in environment configs
-3. Test in dev environment
-4. Promote to staging, then production
-
-### Kubernetes Version Upgrades
-1. Review [EKS Kubernetes versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html)
-2. Test in dev environment
-3. Update `kubernetes_version` variable
-4. Apply with `terraform apply`
-5. Update addons if needed
-
-## References
-- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-- [AWS EKS Best Practices](https://aws.github.io/aws-eks-best-practices/)
-- [Terraform Best Practices](https://www.terraform-best-practices.com/)
+SOC2 Type II: enable all modules in staging + prod, run for 6 months with no findings.
+HIPAA: increase `log_retention_days` to 2190 in prod, sign BAA with AWS, isolate PHI namespaces.

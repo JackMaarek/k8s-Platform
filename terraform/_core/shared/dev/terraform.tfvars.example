@@ -1,0 +1,13 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in values.
+# terraform.tfvars is gitignored — this file is safe to commit.
+
+aws_region         = "eu-west-3"
+cluster_name       = "dev-k8s"
+environment        = "dev"
+kubernetes_version = "1.32"
+compliance_profile = "none"   # none | soc2 | hipaa
+
+account_id_dev     = "123456789012"
+account_id_staging = "234567890123"
+account_id_prod    = "345678901234"

@@ -1,0 +1,128 @@
+# terraform-shared.yml
+# CI pipeline for _core/shared — the cluster foundation.
+# Triggered only when shared infrastructure files change.
+# plan on PR, apply on merge to main.
+
+name: terraform · core/shared
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/_core/shared/**"
+      - "terraform/_core/modules/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "terraform/_core/shared/**"
+      - "terraform/_core/modules/**"
+
+env:
+  TF_VERSION: "1.7.5"
+  AWS_REGION: "eu-west-3"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform fmt check
+        run: terraform fmt -check -recursive terraform/_core/
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint
+        run: |
+          tflint --config terraform/_ci/.tflint.hcl \
+                 --chdir terraform/_core/shared/dev
+
+  plan:
+    name: plan · ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        env: [dev, staging, prod]
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform init
+        working-directory: terraform/_core/shared/${{ matrix.env }}
+        run: terraform init -no-color
+
+      - name: terraform validate
+        working-directory: terraform/_core/shared/${{ matrix.env }}
+        run: terraform validate -no-color
+
+      - name: terraform plan
+        id: plan
+        working-directory: terraform/_core/shared/${{ matrix.env }}
+        run: terraform plan -no-color -out=tfplan
+
+      - name: post plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `### terraform plan · core/shared/${{ matrix.env }}
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\``;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+  apply:
+    name: apply · ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: ${{ matrix.env }}
+    strategy:
+      # Apply environments sequentially: dev → staging → prod
+      max-parallel: 1
+      matrix:
+        env: [dev, staging, prod]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform init
+        working-directory: terraform/_core/shared/${{ matrix.env }}
+        run: terraform init -no-color
+
+      - name: terraform apply
+        working-directory: terraform/_core/shared/${{ matrix.env }}
+        run: terraform apply -auto-approve -no-color
