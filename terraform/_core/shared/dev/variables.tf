@@ -61,3 +61,21 @@ variable "compliance_profile" {
     error_message = "compliance_profile must be none, soc2, or hipaa."
   }
 }
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days for EKS control plane logs."
+  type        = number
+  default     = 7
+}
+
+variable "github_org" {
+  description = "GitHub organisation name — used by the OIDC trust policy for GitHub Actions."
+  type        = string
+  default     = "PodYourLife"
+}
+
+variable "github_repo" {
+  description = "GitHub repository name — scoped in the OIDC trust policy."
+  type        = string
+  default     = "k8s-platform"
+}
