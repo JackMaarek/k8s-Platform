@@ -16,8 +16,8 @@ set -euo pipefail
 #
 # Do NOT add helm install calls here — use ArgoCD Applications in argocd/platform/.
 #
-# Usage: ./scripts/setup-local.sh [--branch <branch>]
-#   --branch  targetRevision for all ArgoCD platform Applications (default: HEAD)
+# Usage: ./scripts/setup-local.sh
+# targetRevision per env is declared in each ApplicationSet generator — no runtime injection needed
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -30,13 +30,6 @@ source "$LIB/namespaces.sh"
 source "$LIB/argocd.sh"
 source "$LIB/summary.sh"
 
-BRANCH="HEAD"
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --branch) BRANCH="$2"; shift 2 ;;
-    *) log_warn "Unknown argument: $1"; shift ;;
-  esac
-done
 
 main() {
   echo ""
@@ -51,11 +44,6 @@ main() {
     bash "$SCRIPT_DIR/install-argocd.sh" < /dev/tty
   fi
 
-  # Hydrate targetRevision placeholder in all platform Applications
-  log_info "Setting targetRevision to '$BRANCH'..."
-  find "$ROOT_DIR/argocd/platform/" -name "*.yaml" \
-    -exec sed -i '' "s/__TARGET_REVISION__/$BRANCH/g" {} +
-  log_success "targetRevision set to '$BRANCH'"
 
   apply_projects
   apply_platform
