@@ -7,7 +7,7 @@ data "terraform_remote_state" "shared" {
   backend = "s3"
 
   config = {
-    bucket = "k8s-platform-terraform-state-351457945908"
+    bucket = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID__"
     key    = "core/shared/dev/terraform.tfstate"
     region = "eu-west-3"
   }
