@@ -1,35 +1,31 @@
-# Terraform
-**/.terraform/
-**/.terraform.lock.hcl
+# Terraform state — never commit
 *.tfstate
 *.tfstate.*
+*.tfstate.lock.info
+
+# Terraform working directory
+.terraform/
+.terraform.lock.hcl
+
+# Saved plan files
+*.tfplan
+tfplan
+plan.json
+
+# Variable files with sensitive values — use terraform.tfvars.example instead
 *.tfvars
-!example.tfvars
+!*.tfvars.example
 
-# Kubernetes
-**/kubeconfig
-**/*.local
+# Crash logs
+crash.log
+crash.*.log
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform/
+**/.terraform/
 .DS_Store
-Thumbs.db
-
-# Secrets
-**/*password*
-**/*credentials*
-!*/secrets-example.yaml
-.argocd-secrets
-.grafana-secrets
-scripts/*_SECRET.md
-
-
-
-# FILES
-*.zip
-istio-*/*
+**/.DS_Store
