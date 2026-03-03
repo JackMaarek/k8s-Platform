@@ -1,104 +1,170 @@
-# Production-Grade Kubernetes Platform
+# k8s-platform
 
-⚠️ WIP ⚠️
+GitOps-first Kubernetes platform for PodYourLife — EKS on AWS, managed by Terraform and ArgoCD.
 
-## Overview
-Complete Kubernetes platform with local development and AWS production support.
+---
 
-## Architecture
-- **Local**: Minikube with Istio
-- **Cloud**: AWS EKS with VPC, autoscaling, and service mesh
-- **Deployment**: GitOps via Argo CD
-- **IaC**: Terraform modules
+## Architecture overview
 
-## Quick Start
-1. Local development: See [kubernetes/README.md](kubernetes/README.md)
-2. AWS infrastructure: See [terraform/README.md](terraform/README.md)
-3. Istio setup: See [istio/README.md](istio/README.md)
-4. GitOps: See [argocd/README.md](argocd/README.md)
-5. Monitoring & Logging: See [kubernetes/helm/monitoring/README.md](kubernetes/helm/monitoring/README.md)
-
-## Directory Structure
 ```
-k8s-platform/
-├── terraform/          # Infrastructure as Code
-│   ├── modules/        # Reusable Terraform modules
-│   └── environments/   # Environment-specific configs
-
-├── kubernetes/         # Kubernetes manifests and Helm charts
-│   ├── helm/           # Application Helm charts
-│   │   ├── sample-app/ # Sample application
-│   │   └── monitoring/ # Prometheus, Grafana, Loki configs
-│   ├── manifests/      # Raw Kubernetes YAML
-│   └── namespaces/     # Namespace definitions
-
-├── istio/              # Service mesh configuration
-│   ├── base/           # Base Istio installation
-│   ├── security/       # Security policies
-│   └── traffic/        # Traffic management
-
-├── argocd/             # GitOps configurations
-│   ├── bootstrap/      # Initial Argo CD setup
-│   └── applications/   # Application definitions
-├── scripts/            # Automation utilities
-└── docs/               # Additional documentation
+platform.yaml              ← source of truth (cluster version, env flags, Istio version)
+      │
+      ├── terraform/                    ← infrastructure
+      │     ├── _core/
+      │     │     ├── modules/aws/      ← reusable modules (vpc, eks, nodegroup, irsa, …)
+      │     │     └── shared/           ← cluster foundation per env (VPC, EKS, IAM, access)
+      │     │           ├── dev/
+      │     │           ├── staging/
+      │     │           └── prod/
+      │     └── domains/
+      │           └── platform/         ← node groups + domain IRSA
+      │                 ├── dev/
+      │                 ├── staging/
+      │                 └── prod/
+      │
+      ├── argocd/                        ← GitOps delivery
+      │     ├── projects/                ← AppProjects (platform, applications)
+      │     ├── platform/                ← ApplicationSets for infra (Istio, monitoring, ESO…)
+      │     └── applications/            ← product app ArgoCD Applications
+      │
+      └── kubernetes/
+            ├── helm/
+            │     ├── sample-app/        ← shared Helm chart for all product apps
+            │     └── values/            ← per-app Helm value overrides
+            └── secrets/                 ← ExternalSecret CRDs (sourced from AWS Secrets Manager)
 ```
 
-## Prerequisites
-- Docker Desktop
-- kubectl (1.28+)
-- Helm 3 (3.12+)
-- Terraform (1.6+)
-- AWS CLI (configured)
-- Minikube
-- Git
+---
 
-## Local Development Workflow
+## Apply order
+
+Infrastructure layers are strictly ordered — each layer reads outputs from the one above via `terraform_remote_state`.
+
+```
+1. terraform/_core/shared/{env}
+   └── provisions VPC, EKS, OIDC, IRSA roles → writes state to S3
+
+2. terraform/domains/platform/{env}
+   └── reads _core/shared state → provisions node groups, CoreDNS addon, domain IRSA
+
+3. scripts/setup-local.sh  (or CI)
+   └── configures kubectl → bootstraps ArgoCD → syncs all platform ApplicationSets
+```
+
+Never apply a domain before its `_core/shared` env. Never apply prod manually — use CI.
+
+---
+
+## Quick start (dev)
+
 ```bash
-# Start Minikube
-minikube start --cpus=4 --memory=8192
- 
-# You can either Apply components yourself (ex: base namespaces etc..)
-kubectl apply -f kubernetes/namespaces/
+# 1. Bootstrap S3 + DynamoDB (once per AWS account)
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws s3 mb s3://k8s-platform-terraform-state-${ACCOUNT_ID} --region eu-west-3
+aws dynamodb create-table \
+  --table-name k8s-platform-terraform-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST --region eu-west-3
 
-# Or use the /scripts to install and deploy all the cluster's components.
-chmod+x /scripts/install-istio.sh # Same for every component you need, monitoring, argocd whatever if you even want to incorporate your scripts. Maybe this will become too messy
-./scripts/install-istio.sh
+# 2. Configure terraform.tfvars
+cd terraform/_core/shared/dev
+cp terraform.tfvars.example terraform.tfvars
+# fill in account IDs, update backend.tf bucket name with $ACCOUNT_ID
 
-# Install sample application
-helm install sample-app kubernetes/helm/sample-app -n development
+# 3. Apply cluster foundation
+terraform init && terraform apply
+
+# 4. Apply domain (node groups)
+cd ../../../domains/platform/dev
+cp terraform.tfvars.example terraform.tfvars
+terraform init && terraform apply
+
+# 5. Bootstrap ArgoCD
+$(cd ../../_core/shared/dev && terraform output -raw configure_kubectl)
+./scripts/setup-local.sh
 ```
 
-## AWS Production Workflow
+---
+
+## Secrets
+
+All secrets live in **AWS Secrets Manager** under `{cluster-name}/{namespace}/{app}`. ESO syncs them into native Kubernetes Secrets. No secrets are stored in this repository.
+
 ```bash
-# Initialize Terraform
-cd terraform/environments/dev
-terraform init
+# Add a secret (via platform-bot)
+platform-bot secret add --name my-app/DB_PASSWORD --value <value>
 
-# Plan and apply infrastructure
-terraform plan
-terraform apply
-
-# Configure kubectl
-aws eks update-kubeconfig --region eu-west-3 --name dev-k8s-cluster
+# Manually
+aws secretsmanager create-secret \
+  --name dev-k8s/development/my-app \
+  --secret-string '{"DB_PASSWORD":"xxx"}'
 ```
 
-## Key Features
-- ✅ Modular Infrastructure as Code
-- ✅ GitOps continuous delivery
-- ✅ Service mesh with strict mTLS
-- ✅ Zero-trust security policies
-- ✅ Horizontal and cluster autoscaling
-- ✅ Production-ready Helm charts
-- ✅ Complete monitoring stack (Prometheus + Grafana + Loki)
-- 👷🏽 Generation of Argo, kube & prometheus dashboard configs to improve the DevX, DeployX (cookiecutter ?)
-- 👷🏽 CI/CD checks non regression
+See `docs/examples/external-secret.yaml` for the ExternalSecret CRD pattern.
 
-## Documentation
-Each major directory contains its own README with detailed instructions, architecture decisions, and troubleshooting guides.
+---
 
-## Contributing
-Follow the Single Responsibility Principle for all code and configurations. Each module, chart, and manifest should have one clear purpose.
+## Deploying an application
 
-## License
-Internal use only.
+1. Add a Helm values file: `kubernetes/helm/values/<app>-dev.yaml`
+2. Add an ArgoCD Application: `argocd/applications/<app>.yaml` (copy from `docs/examples/argocd-application.yaml`)
+3. Commit and push — ArgoCD picks it up automatically
+
+See `docs/examples/` for annotated templates.
+
+---
+
+## Access management
+
+| Who | How | Permission |
+|-----|-----|-----------|
+| Developers | `aws sso login --profile dev-platform` | poweruser dev, readonly staging/prod |
+| Maintainers | `aws sso login --profile dev-platform` | poweruser dev+staging, readonly prod |
+| CI (GitHub Actions) | OIDC — no stored credentials | apply on main branch |
+| Prod apply | **CI only** — no human apply | restricted by IAM trust policy |
+
+After `terraform apply` on `_core/shared/dev`, set these GitHub secrets:
+- `AWS_TERRAFORM_PLAN_ROLE_ARN` ← `terraform output github_plan_role_arn`
+- `AWS_TERRAFORM_ROLE_ARN` ← `terraform output github_apply_role_arn`
+
+---
+
+## Compliance
+
+| Control | dev | staging | prod |
+|---------|-----|---------|------|
+| CloudTrail | ✗ | ✓ 365d | ✓ 6yr |
+| KMS CMK | ✗ | ✓ | ✓ (30d deletion window) |
+| VPC Flow Logs | ✗ | ✓ | ✓ |
+| GuardDuty | ✗ | ✓ | ✓ |
+| AWS Config | ✗ | ✓ | ✓ |
+
+Switch profile: change `compliance_profile` in `terraform.tfvars` and re-apply. No refactoring required.
+
+---
+
+## Estimated costs (eu-west-3, SPOT pricing)
+
+| Env | Infra | Node groups | Total |
+|-----|-------|------------|-------|
+| dev | ~$30 | 2× t3.medium SPOT | ~$115/mo |
+| staging | ~$130 (compliance + multi-AZ NAT) | 2× t3.medium SPOT | ~$222/mo |
+| prod | ~$160 (HIPAA + multi-AZ NAT) | 3× t3.large ON_DEMAND | ~$260/mo |
+
+GPU nodes (g4dn.xlarge) start at `desired_size = 0` — zero cost until a GPU workload is scheduled.
+
+---
+
+## Further reading
+
+| Topic | Where |
+|-------|-------|
+| Cluster foundation (VPC, EKS, IRSA) | `terraform/_core/shared/{env}/README.md` |
+| Node groups | `terraform/domains/platform/{env}/README.md` |
+| Reusable modules | `terraform/_core/modules/README.md` |
+| Adding a product app | `docs/examples/argocd-application.yaml` |
+| Secret management | `docs/examples/external-secret.yaml` |
+| GPU workloads | `docs/examples/gpu-workload.yaml` |
+| First-time Terraform bootstrap | `docs/examples/terraform-new-env.md` |
+| ArgoCD GitOps | `argocd/README.md` |
