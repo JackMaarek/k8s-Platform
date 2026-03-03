@@ -3,7 +3,7 @@
 
 terraform {
   backend "s3" {
-    bucket         = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID__"
+    bucket         = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID_DEV__"
     key            = "domains/platform/dev/terraform.tfstate"
     region         = "eu-west-3"
     encrypt        = true
