@@ -28,7 +28,7 @@ locals {
 
 module "kms_compliance" {
   count  = local.enable_compliance ? 1 : 0
-  source = "../../modules/compliance/kms"
+  source = "../../modules/aws/compliance/kms"
 
   purpose     = "compliance"
   environment = var.environment
@@ -53,7 +53,7 @@ module "kms_compliance" {
 
 module "cloudtrail" {
   count  = local.enable_compliance ? 1 : 0
-  source = "../../modules/compliance/cloudtrail"
+  source = "../../modules/aws/compliance/cloudtrail"
 
   cluster_name       = var.cluster_name
   environment        = var.environment
@@ -71,7 +71,7 @@ module "cloudtrail" {
 
 module "vpc_flow_logs" {
   count  = local.enable_compliance ? 1 : 0
-  source = "../../modules/compliance/vpc-flow-logs"
+  source = "../../modules/aws/compliance/vpc-flow-logs"
 
   vpc_id             = module.vpc.vpc_id
   kms_key_arn        = module.kms_compliance[0].key_arn
@@ -88,7 +88,7 @@ module "vpc_flow_logs" {
 
 module "guardduty" {
   count  = local.enable_compliance ? 1 : 0
-  source = "../../modules/compliance/guardduty"
+  source = "../../modules/aws/compliance/guardduty"
 
   enabled = true
 
@@ -103,7 +103,7 @@ module "guardduty" {
 
 module "aws_config" {
   count  = local.enable_compliance ? 1 : 0
-  source = "../../modules/compliance/aws-config"
+  source = "../../modules/aws/compliance/aws-config"
 
   cluster_name = var.cluster_name
   environment  = var.environment

@@ -7,7 +7,7 @@
 # Scoped to secrets under {cluster_name}/* — each domain owns its own path.
 
 module "irsa_eso" {
-  source = "../../modules/irsa"
+  source = "../../modules/aws/irsa"
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
   role_name               = "${var.cluster_name}-eso-role"
@@ -39,7 +39,7 @@ module "irsa_eso" {
 # GPU node group starts at 0 — autoscaler provisions on demand.
 
 module "irsa_cluster_autoscaler" {
-  source = "../../modules/irsa"
+  source = "../../modules/aws/irsa"
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
   role_name               = "${var.cluster_name}-autoscaler-role"

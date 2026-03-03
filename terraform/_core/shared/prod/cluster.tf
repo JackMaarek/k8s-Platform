@@ -3,7 +3,7 @@
 # The cluster is provisioned once and shared across all domains.
 
 module "eks" {
-  source = "../../modules/eks"
+  source = "../../modules/aws/eks"
 
   cluster_name        = var.cluster_name
   kubernetes_version  = var.kubernetes_version

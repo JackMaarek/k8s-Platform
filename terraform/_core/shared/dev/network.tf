@@ -9,7 +9,7 @@ locals {
 }
 
 module "vpc" {
-  source = "../../modules/vpc"
+  source = "../../modules/aws/vpc"
 
   name               = var.cluster_name
   cluster_name       = var.cluster_name

@@ -11,7 +11,7 @@
 # apply role → main branch only (post-merge)
 
 module "github_oidc" {
-  source = "../../modules/github-oidc"
+  source = "../../modules/aws/github-oidc"
 
   cluster_name = var.cluster_name
   github_org   = "PodYourLife"
@@ -35,7 +35,7 @@ module "github_oidc" {
 #   platform-maintainers → poweruser dev + staging, readonly prod
 
 module "identity_center" {
-  source = "../../modules/identity-center"
+  source = "../../modules/aws/identity-center"
 
   cluster_name       = var.cluster_name
   account_id_dev     = var.account_id_dev

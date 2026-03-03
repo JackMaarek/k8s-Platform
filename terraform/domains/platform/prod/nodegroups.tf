@@ -14,7 +14,7 @@
 module "node_groups" {
   for_each = var.node_groups
 
-  source = "../../../_core/modules/nodegroup"
+  source = "../../../_core/modules/aws/nodegroup"
 
   cluster_name    = local.cluster_id
   node_group_name = "${local.cluster_id}-${each.key}"

@@ -6,7 +6,7 @@
 # Reads ECR to detect new image tags and updates ArgoCD Applications automatically
 
 module "irsa_argocd_image_updater" {
-  source = "../../../_core/modules/irsa"
+  source = "../../../_core/modules/aws/irsa"
 
   cluster_oidc_issuer_url = local.cluster_oidc_issuer_url
   role_name               = "${local.cluster_id}-argocd-image-updater-role"
