@@ -1,0 +1,86 @@
+# docs/examples/gpu-workload.yaml
+#
+# Example ArgoCD Application + Helm values for a GPU workload.
+#
+# Prerequisites:
+#   - GPU node group active in terraform/domains/platform/{env}/terraform.tfvars
+#     (desired_size >= 1, or cluster-autoscaler scales from 0 on demand)
+#   - NVIDIA device plugin deployed (add-on managed by the platform)
+#
+# platform-bot shortcut:
+#   platform-bot app add --name <app-name> --namespace development --type gpu-workload
+#   → generates this Application + values file pre-filled with GPU tolerations
+
+# ── ArgoCD Application ────────────────────────────────────────────────────────
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: <app-name>-gpu
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: applications
+
+  source:
+    repoURL: __REPO_URL__
+    targetRevision: main
+    path: kubernetes/helm/sample-app
+    helm:
+      valueFiles:
+        - values.yaml
+        - ../../values/<app-name>-gpu-dev.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: development
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+---
+# ── Helm values — kubernetes/helm/values/<app-name>-gpu-dev.yaml ─────────────
+
+# nameOverride: "<app-name>"
+
+# image:
+#   repository: ghcr.io/podyourlife/<app-name>
+#   tag: "latest"
+
+# GPU node targeting
+# nodeSelector:
+#   node-group: gpu
+
+# tolerations:
+#   - key: nvidia.com/gpu
+#     operator: Equal
+#     value: "true"
+#     effect: NoSchedule
+
+# resources:
+#   limits:
+#     nvidia.com/gpu: 1           # number of GPUs per pod
+#     cpu: 4000m
+#     memory: 16Gi
+#   requests:
+#     cpu: 2000m
+#     memory: 8Gi
+
+# autoscaling:
+#   enabled: false                # GPU pods are not HPA-friendly — scale via replicas
+
+# replicaCount: 1

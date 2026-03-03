@@ -1,8 +1,23 @@
-# Example ArgoCD Application manifest
-# Copy to argocd/applications/<app-name>.yaml and replace <app-name> with your app name.
+# docs/examples/argocd-application.yaml
 #
-# The Helm chart at kubernetes/helm/sample-app/ is the shared template.
-# App-specific values live in kubernetes/helm/values/<app-name>.yaml.
+# Example ArgoCD Application for a product app on the PodYourLife platform.
+#
+# Usage:
+#   1. Copy to argocd/applications/<app-name>.yaml
+#   2. Replace all <app-name> / <namespace> occurrences
+#   3. Add a values file at kubernetes/helm/values/<app-name>-<env>.yaml
+#   4. Commit — ArgoCD picks it up automatically
+#
+# Or let platform-bot generate this for you:
+#   platform-bot app add --name <app-name> --namespace development
+#
+# Projects:
+#   applications  → product apps (development / staging / production)
+#   platform      → infra (Istio, monitoring, ESO) — platform-team only
+#
+# Secret injection:
+#   Secrets come from AWS Secrets Manager via ESO — NOT from Helm values.
+#   See docs/examples/external-secret.yaml for the ExternalSecret pattern.
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -11,21 +26,25 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: <app-name>
+    app.kubernetes.io/part-of: applications
 spec:
-  project: <project>
+  project: applications
 
   source:
-    repoURL: <repo-url>
-    targetRevision: <revision>
-    path: kubernetes/helm/<app-name>
+    repoURL: __REPO_URL__
+    targetRevision: main            # pin to a tag for production: v1.2.3
+    path: kubernetes/helm/sample-app
     helm:
       valueFiles:
-        - values.yaml
-        - values-<namespace>.yaml
+        - values.yaml                              # chart defaults
+        - ../../values/<app-name>-dev.yaml         # app overrides (dev)
+        # Swap suffix per env: -staging.yaml / -prod.yaml
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: <namespace>
+    namespace: development          # development | staging | production
 
   syncPolicy:
     automated:
@@ -33,7 +52,7 @@ spec:
       selfHeal: true
       allowEmpty: false
     syncOptions:
-      - CreateNamespace=false
+      - CreateNamespace=false       # namespaces are managed by the platform
       - PrunePropagationPolicy=foreground
       - PruneLast=true
     retry:
@@ -49,4 +68,4 @@ spec:
     - group: apps
       kind: Deployment
       jsonPointers:
-        - /spec/replicas  # HPA manages replica count
+        - /spec/replicas             # HPA owns replica count — ignore drift
