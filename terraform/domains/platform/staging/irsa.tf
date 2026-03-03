@@ -1,6 +1,6 @@
 # irsa.tf
 # Responsibility: IRSA roles for platform workloads (ArgoCD image updater, etc.)
-# Cluster-level IRSA (ESO, Autoscaler) live in _core/shared/dev/iam.tf
+# Cluster-level IRSA (ESO, Autoscaler) live in _core/shared/staging/iam.tf
 
 # ── ArgoCD image updater ───────────────────────────────────────────────────────
 # Reads ECR to detect new image tags and updates ArgoCD Applications automatically

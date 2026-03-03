@@ -37,3 +37,20 @@ module "node_groups" {
     "k8s.io/cluster-autoscaler/${local.cluster_id}"      = "owned"
   }
 }
+
+# ── CoreDNS addon ──────────────────────────────────────────────────────────────
+# Provisioned here (after nodes) because CoreDNS requires a node to reach ACTIVE.
+# Provisioning it with the cluster in _core/shared causes a timeout.
+
+resource "aws_eks_addon" "coredns" {
+  cluster_name                = local.cluster_id
+  addon_name                  = "coredns"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "PRESERVE"
+
+  tags = {
+    Environment = var.environment
+  }
+
+  depends_on = [module.node_groups]
+}
