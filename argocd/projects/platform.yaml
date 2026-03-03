@@ -11,10 +11,10 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "Platform infrastructure — Istio, monitoring, sealed-secrets, namespaces"
+  description: "Platform infrastructure — Istio, monitoring, ESO, namespaces"
 
   sourceRepos:
-    - https://github.com/PodYourLife/k8s-platform.git
+    - __REPO_URL__
     - https://istio-release.storage.googleapis.com/charts
     - https://prometheus-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts

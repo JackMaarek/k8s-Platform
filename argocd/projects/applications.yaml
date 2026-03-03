@@ -14,7 +14,7 @@ spec:
   description: "Product applications — lpcdm and future services"
 
   sourceRepos:
-    - https://github.com/PodYourLife/k8s-platform.git
+    - __REPO_URL__
 
   destinations:
     - namespace: development
