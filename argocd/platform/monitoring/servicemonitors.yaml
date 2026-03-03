@@ -7,29 +7,63 @@
 # ServiceMonitor CRD (monitoring.coreos.com) must exist before applying these resources
 # Loki and Promtail pods must exist for ServiceMonitors to resolve their selectors
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: monitoring-servicemonitors
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
 spec:
-  project: platform
-
-  source:
-    repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: __TARGET_REVISION__
-    path: kubernetes/manifests/monitoring/servicemonitors
-
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
-
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - ServerSideApply=true
+  goTemplate: true
+  # --- Environment registry ---
+  # To activate an env: set enabled: "true"
+  # To deactivate: set enabled: "false" — ArgoCD stops generating the Application and prunes it.
+  # cloud: identifies the provider (aws | gcp | azure) — used by platform-bot and future multi-cloud selectors.
+  # No other file to touch.
+  generators:
+    - list:
+        elements:
+          - env: dev
+            enabled: "true"
+            cloud: aws
+            targetRevision: dev
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_DEV__
+            awsRegion: eu-west-3
+          - env: staging
+            enabled: "false"
+            cloud: aws
+            targetRevision: staging
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_STAGING__
+            awsRegion: eu-west-3
+          - env: prod
+            enabled: "false"
+            cloud: aws
+            targetRevision: main
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_PROD__
+            awsRegion: eu-west-3
+  selector:
+    matchExpressions:
+      - key: enabled
+        operator: In
+        values: ["true"]
+  template:
+    metadata:
+      name: 'monitoring-servicemonitors-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "6"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/PodYourLife/k8s-platform.git
+        targetRevision: '{{.targetRevision}}'
+        path: kubernetes/manifests/monitoring/servicemonitors
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true

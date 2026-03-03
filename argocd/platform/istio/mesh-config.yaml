@@ -4,30 +4,64 @@
 # To add a new app to the mesh: edit istio/helm/values.yaml
 # Depends on: istio-gateway, istio-security
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: istio-mesh-config
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
 spec:
-  project: platform
-
-  source:
-    repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: __TARGET_REVISION__
-    path: istio/helm
-
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: istio-system
-
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - ServerSideApply=true
-      - CreateNamespace=true
+  goTemplate: true
+  # --- Environment registry ---
+  # To activate an env: set enabled: "true"
+  # To deactivate: set enabled: "false" — ArgoCD stops generating the Application and prunes it.
+  # cloud: identifies the provider (aws | gcp | azure) — used by platform-bot and future multi-cloud selectors.
+  # No other file to touch.
+  generators:
+    - list:
+        elements:
+          - env: dev
+            enabled: "true"
+            cloud: aws
+            targetRevision: dev
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_DEV__
+            awsRegion: eu-west-3
+          - env: staging
+            enabled: "false"
+            cloud: aws
+            targetRevision: staging
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_STAGING__
+            awsRegion: eu-west-3
+          - env: prod
+            enabled: "false"
+            cloud: aws
+            targetRevision: main
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_PROD__
+            awsRegion: eu-west-3
+  selector:
+    matchExpressions:
+      - key: enabled
+        operator: In
+        values: ["true"]
+  template:
+    metadata:
+      name: 'istio-mesh-config-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "3"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/PodYourLife/k8s-platform.git
+        targetRevision: '{{.targetRevision}}'
+        path: istio/helm
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: istio-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true

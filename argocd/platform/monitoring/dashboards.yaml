@@ -9,29 +9,63 @@
 # datasources (wave 8) must exist so dashboards have a working datasource on first load
 # ServerSideApply required — dashboard ConfigMaps exceed the 262144-byte annotation limit
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: grafana-dashboards
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-  annotations:
-    argocd.argoproj.io/sync-wave: "8"
 spec:
-  project: platform
-
-  source:
-    repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: __TARGET_REVISION__
-    path: kubernetes/manifests/monitoring/dashboards
-
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
-
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - ServerSideApply=true
+  goTemplate: true
+  # --- Environment registry ---
+  # To activate an env: set enabled: "true"
+  # To deactivate: set enabled: "false" — ArgoCD stops generating the Application and prunes it.
+  # cloud: identifies the provider (aws | gcp | azure) — used by platform-bot and future multi-cloud selectors.
+  # No other file to touch.
+  generators:
+    - list:
+        elements:
+          - env: dev
+            enabled: "true"
+            cloud: aws
+            targetRevision: dev
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_DEV__
+            awsRegion: eu-west-3
+          - env: staging
+            enabled: "false"
+            cloud: aws
+            targetRevision: staging
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_STAGING__
+            awsRegion: eu-west-3
+          - env: prod
+            enabled: "false"
+            cloud: aws
+            targetRevision: main
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_PROD__
+            awsRegion: eu-west-3
+  selector:
+    matchExpressions:
+      - key: enabled
+        operator: In
+        values: ["true"]
+  template:
+    metadata:
+      name: 'grafana-dashboards-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "8"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/PodYourLife/k8s-platform.git
+        targetRevision: '{{.targetRevision}}'
+        path: kubernetes/manifests/monitoring/dashboards
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true

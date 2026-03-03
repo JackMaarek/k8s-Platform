@@ -6,37 +6,71 @@
 # monitoring namespace must have istio-injection: disabled before this syncs
 # otherwise admission-create Job gets a sidecar and blocks forever
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: prometheus
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
 spec:
-  project: platform
-
-  sources:
-    - repoURL: https://prometheus-community.github.io/helm-charts
-      chart: kube-prometheus-stack
-      targetRevision: 82.4.2
-      helm:
-        releaseName: prometheus
-        valueFiles:
-          - $values/kubernetes/helm/monitoring/prometheus-values.yaml
-    - repoURL: https://github.com/PodYourLife/k8s-platform.git
-      targetRevision: __TARGET_REVISION__
-      ref: values
-
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
-
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - ServerSideApply=true
-      - CreateNamespace=true
+  goTemplate: true
+  # --- Environment registry ---
+  # To activate an env: set enabled: "true"
+  # To deactivate: set enabled: "false" — ArgoCD stops generating the Application and prunes it.
+  # cloud: identifies the provider (aws | gcp | azure) — used by platform-bot and future multi-cloud selectors.
+  # No other file to touch.
+  generators:
+    - list:
+        elements:
+          - env: dev
+            enabled: "true"
+            cloud: aws
+            targetRevision: dev
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_DEV__
+            awsRegion: eu-west-3
+          - env: staging
+            enabled: "false"
+            cloud: aws
+            targetRevision: staging
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_STAGING__
+            awsRegion: eu-west-3
+          - env: prod
+            enabled: "false"
+            cloud: aws
+            targetRevision: main
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_PROD__
+            awsRegion: eu-west-3
+  selector:
+    matchExpressions:
+      - key: enabled
+        operator: In
+        values: ["true"]
+  template:
+    metadata:
+      name: 'prometheus-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "4"
+    spec:
+      project: platform
+      sources:
+        - repoURL: https://prometheus-community.github.io/helm-charts
+          chart: kube-prometheus-stack
+          targetRevision: 82.4.2
+          helm:
+            releaseName: prometheus
+            valueFiles:
+              - $values/kubernetes/helm/monitoring/prometheus-values.yaml
+        - repoURL: https://github.com/PodYourLife/k8s-platform.git
+          targetRevision: '{{.targetRevision}}'
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true
