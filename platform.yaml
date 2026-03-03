@@ -1,0 +1,24 @@
+# platform.yaml — source of truth for cluster configuration
+#
+# Read by platform-bot to propagate values across the repo.
+# - dev:          edit directly, commit to main
+# - staging/prod: requires a PR — branch protection enforced by CI
+#
+# Commands:
+#   platform-bot sync                    propagate this file across the repo
+#   platform-bot set-version <version>   update kubernetes_version + sync
+#   platform-bot enable-env <env>        set enabled: true + sync
+
+kubernetes_version: "1.33"
+istio_version: "1.27.1"
+
+environments:
+  dev:
+    enabled: true
+    region: eu-west-3
+  staging:
+    enabled: false
+    region: eu-west-3
+  prod:
+    enabled: false
+    region: eu-west-3
