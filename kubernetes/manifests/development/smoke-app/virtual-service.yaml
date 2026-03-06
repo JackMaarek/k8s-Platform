@@ -1,0 +1,14 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: smoke-app
+  namespace: development
+spec:
+  hosts:
+    - smoke-app
+  http:
+    - route:
+        - destination:
+            host: smoke-app
+            port:
+              number: 80

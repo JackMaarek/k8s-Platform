@@ -14,7 +14,7 @@ start_minikube() {
     --cpus=4 \
     --memory=10240 \
     --driver=docker \
-    --kubernetes-version=v1.32.0 \
+    --kubernetes-version=v1.33.0 \
     --addons=metrics-server
 
   log_success "Minikube started"
