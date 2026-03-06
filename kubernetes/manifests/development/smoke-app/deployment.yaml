@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smoke-app
+  namespace: development
+  labels:
+    app: smoke-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smoke-app
+  template:
+    metadata:
+      labels:
+        app: smoke-app
+    spec:
+      containers:
+        - name: smoke-app
+          image: ghcr.io/PodYourLife/smoke-app:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10

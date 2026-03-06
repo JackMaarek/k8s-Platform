@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: smoke-app
+  namespace: development
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: smoke-app
+  endpoints:
+    - port: http
+      path: /metrics
