@@ -1,85 +1,27 @@
-# AppProject: platform
-# Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
-# Allowed destinations: istio-system, monitoring, argocd, kube-system
-# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
-# Only platform-admin role can sync — dev-team has read-only access
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: platform
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  description: "Platform infrastructure — Istio, monitoring, ESO, namespaces"
-
-  sourceRepos:
-    - __REPO_URL__
-    - https://istio-release.storage.googleapis.com/charts
-    - https://prometheus-community.github.io/helm-charts
-    - https://grafana.github.io/helm-charts
-    - https://charts.bitnami.com/bitnami
-    - https://helm.releases.hashicorp.com
-    - https://charts.external-secrets.io
-
-  destinations:
-    - namespace: istio-system
-      server: https://kubernetes.default.svc
-    - namespace: monitoring
-      server: https://kubernetes.default.svc
-    - namespace: argocd
-      server: https://kubernetes.default.svc
-    - namespace: kube-system
-      server: https://kubernetes.default.svc
-    - namespace: development
-      server: https://kubernetes.default.svc
-    - namespace: staging
-      server: https://kubernetes.default.svc
-    - namespace: production
-      server: https://kubernetes.default.svc
-    - namespace: default
-      server: https://kubernetes.default.svc
-
-  # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
-  clusterResourceWhitelist:
-    - group: ""
-      kind: Namespace
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRole
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRoleBinding
-    - group: admissionregistration.k8s.io
-      kind: MutatingWebhookConfiguration
-    - group: admissionregistration.k8s.io
-      kind: ValidatingWebhookConfiguration
-    - group: networking.istio.io
-      kind: "*"
-    - group: security.istio.io
-      kind: "*"
-    - group: telemetry.istio.io
-      kind: "*"
-
-  namespaceResourceWhitelist:
-    - group: "*"
-      kind: "*"
-
-  # Orphan resources allowed — Helm sometimes leaves behind CRDs on uninstall
-  orphanedResources:
-    warn: true
-
-  roles:
-    - name: platform-admin
-      description: "Full sync access to platform apps"
-      policies:
-        - p, proj:platform:platform-admin, applications, *, platform/*, allow
-        - p, proj:platform:platform-admin, repositories, *, *, allow
-      groups:
-        - platform-team
-    - name: platform-readonly
-      description: "Read-only access for dev-team"
-      policies:
-        - p, proj:platform:platform-readonly, applications, get, platform/*, allow
-      groups:
-        - dev-team
+# platform.yaml — source of truth for PodYourLife k8s-platform
+#
+# Versions, region, and enabled flag are per-environment.
+# platform-bot reads this file and propagates values to:
+#   - terraform/_core/shared/<env>/terraform.tfvars   (kubernetes_version)
+#   - terraform/_core/shared/<env>/variables.tf        (kubernetes_version default)
+#   - terraform/_core/modules/aws/eks/variables.tf     (kubernetes_version default)
+#   - scripts/lib/minikube.sh                          (K8S_VERSION)
+#   - argocd/platform/istio/{base,cni,istiod,gateway}.yaml  (targetRevision)
+#   - argocd/platform/**/*.yaml                        (enabled, awsRegion in generators)
+#   - kubernetes/secrets/<env>/secret-store.yaml       (region, generated from template)
+environments:
+  dev:
+    enabled: true
+    region: eu-west-3
+    kubernetes_version: "1.33"
+    istio_version: "1.27.1"
+  staging:
+    enabled: false
+    region: eu-west-3
+    kubernetes_version: "1.33"
+    istio_version: "1.27.1"
+  prod:
+    enabled: false
+    region: eu-west-3
+    kubernetes_version: "1.33"
+    istio_version: "1.27.1"
