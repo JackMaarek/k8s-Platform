@@ -1,0 +1,61 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and adjust to your infrastructure needs.
+
+aws_region  = "eu-west-3"
+environment = "prod"
+
+# ── Node groups ────────────────────────────────────────────────────────────────
+# Each key becomes a node group named: {cluster_name}-{key}
+# Add a block to provision a new node group.
+# Remove a block to destroy it (terraform will drain + delete).
+# platform-bot nodegroup add generates entries here automatically.
+
+# Minimal setup — no GPU, standard workloads only
+node_groups = {
+  standard = {
+    instance_types = ["t3.medium"]
+    capacity_type  = "SPOT"
+    desired_size   = 2
+    max_size       = 4
+    min_size       = 1
+    disk_size      = 30
+    labels         = { "node-group" = "standard" }
+    taints         = []
+  }
+
+  # Uncomment to add GPU nodes for ML/AI workloads
+  # gpu = {
+  #   instance_types = ["g4dn.xlarge"]   # 1x NVIDIA T4, 4 vCPU, 16GB RAM
+  #   capacity_type  = "SPOT"
+  #   desired_size   = 0                 # scale-to-zero — Cluster Autoscaler provisions on demand
+  #   max_size       = 3
+  #   min_size       = 0
+  #   disk_size      = 100               # larger for ML datasets + model checkpoints
+  #   labels         = { "node-group" = "gpu", "nvidia.com/gpu" = "true" }
+  #   taints = [
+  #     {
+  #       key    = "nvidia.com/gpu"
+  #       value  = "true"
+  #       effect = "NO_SCHEDULE"         # prevents non-GPU pods from landing here
+  #     }
+  #   ]
+  # }
+
+  # Example: quantum simulator nodes
+  # quantum = {
+  #   instance_types = ["c5.2xlarge"]
+  #   capacity_type  = "SPOT"
+  #   desired_size   = 0
+  #   max_size       = 2
+  #   min_size       = 0
+  #   disk_size      = 50
+  #   labels         = { "node-group" = "quantum" }
+  #   taints = [
+  #     {
+  #       key    = "workload"
+  #       value  = "quantum"
+  #       effect = "NO_SCHEDULE"
+  #     }
+  #   ]
+  # }
+}
