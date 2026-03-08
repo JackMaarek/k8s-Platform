@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Name }}
+  namespace: {{ .Namespace }}
+spec:
+  hosts:
+    - {{ .Name }}
+  http:
+    - route:
+        - destination:
+            host: {{ .Name }}
+            port:
+              number: 80
+      timeout: 0s  # GPU workloads: no timeout
