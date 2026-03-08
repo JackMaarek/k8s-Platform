@@ -17,37 +17,13 @@ metadata:
   namespace: argocd
 spec:
   goTemplate: true
-  # --- Environment registry ---
-  # To activate an env: set enabled: "true"
-  # To deactivate: set enabled: "false" — ArgoCD stops generating the Application and prunes it.
-  # cloud: identifies the provider (aws | gcp | azure) — used by platform-bot and future multi-cloud selectors.
-  # No other file to touch.
   generators:
     - list:
         elements:
-          - env: dev
-            enabled: "true"
-            cloud: aws
-            targetRevision: dev
-            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_DEV__
-            awsRegion: eu-west-3
-          - env: staging
-            enabled: "false"
-            cloud: aws
-            targetRevision: staging
-            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_STAGING__
-            awsRegion: eu-west-3
-          - env: prod
-            enabled: "false"
-            cloud: aws
-            targetRevision: main
-            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN_PROD__
-            awsRegion: eu-west-3
-  selector:
-    matchExpressions:
-      - key: enabled
-        operator: In
-        values: ["true"]
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
   template:
     metadata:
       name: 'development-servicemonitors-{{.env}}'
