@@ -1,0 +1,37 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Require app.kubernetes.io/name and env labels on all Pods for consistent
+      observability and policy targeting. Runs in Audit mode during initial rollout.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: require-app-and-env-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+                - argocd
+                - istio-system
+                - monitoring
+      validate:
+        message: "Pods must have 'app.kubernetes.io/name' and 'env' labels."
+        pattern:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "?*"
+              env: "?*"

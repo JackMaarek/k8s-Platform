@@ -1,0 +1,51 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-image-registry
+  annotations:
+    policies.kyverno.io/title: Check Image Registry
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Restrict container images to ghcr.io/PodYourLife/ and a set of trusted
+      system registries. Runs in Audit mode during initial rollout.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: check-image-registry
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+                - argocd
+                - istio-system
+                - monitoring
+                - cert-manager
+      validate:
+        message: >-
+          Images must come from ghcr.io/PodYourLife/ or an allowed system registry.
+        foreach:
+          - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
+            deny:
+              conditions:
+                all:
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "ghcr.io/PodYourLife/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "docker.io/library/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "registry.k8s.io/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "quay.io/kiwigrid/*"
