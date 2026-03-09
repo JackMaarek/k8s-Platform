@@ -21,6 +21,7 @@ spec:
     - https://charts.bitnami.com/bitnami
     - https://helm.releases.hashicorp.com
     - https://charts.external-secrets.io
+    - https://kyverno.github.io/kyverno/
 
   destinations:
     - namespace: istio-system
@@ -38,6 +39,10 @@ spec:
     - namespace: production
       server: https://kubernetes.default.svc
     - namespace: default
+      server: https://kubernetes.default.svc
+    - namespace: kyverno
+      server: https://kubernetes.default.svc
+    - namespace: external-secrets
       server: https://kubernetes.default.svc
 
   # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
@@ -59,6 +64,10 @@ spec:
     - group: security.istio.io
       kind: "*"
     - group: telemetry.istio.io
+      kind: "*"
+    - group: kyverno.io
+      kind: "*"
+    - group: wgpolicyk8s.io
       kind: "*"
 
   namespaceResourceWhitelist:

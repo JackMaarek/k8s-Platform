@@ -15,10 +15,22 @@ metadata:
 spec:
   project: platform
 
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istio-validator-istio-system
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: istio-sidecar-injector
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts
     chart: istiod
-    targetRevision: 1.26.4
+    targetRevision: 1.27.1
     helm:
       releaseName: istiod
       values: |
