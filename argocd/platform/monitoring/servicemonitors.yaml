@@ -22,7 +22,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'monitoring-servicemonitors-{{.env}}'
+      name: 'monitoring-servicemonitors-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -32,7 +32,7 @@ spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: kubernetes/manifests/monitoring/servicemonitors
       destination:
         server: https://kubernetes.default.svc

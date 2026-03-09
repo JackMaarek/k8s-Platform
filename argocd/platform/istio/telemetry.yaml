@@ -16,7 +16,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'istio-telemetry-{{.env}}'
+      name: 'istio-telemetry-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -26,7 +26,7 @@ spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: istio/telemetry
       destination:
         server: https://kubernetes.default.svc

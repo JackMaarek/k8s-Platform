@@ -17,7 +17,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'istio-security-{{.env}}'
+      name: 'istio-security-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -28,7 +28,7 @@ spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: istio/security
       destination:
         server: https://kubernetes.default.svc
