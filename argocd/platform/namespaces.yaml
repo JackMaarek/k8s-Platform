@@ -21,7 +21,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'namespaces-{{.env}}'
+      name: 'namespaces-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -36,7 +36,7 @@ spec:
             - /metadata/annotations
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: kubernetes/namespaces
       destination:
         server: https://kubernetes.default.svc

@@ -21,7 +21,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'loki-{{.env}}'
+      name: 'loki-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -38,7 +38,7 @@ spec:
             valueFiles:
               - $values/kubernetes/helm/monitoring/loki-values.yaml
         - repoURL: https://github.com/PodYourLife/k8s-platform.git
-          targetRevision: '{{.targetRevision}}'
+          targetRevision: 'dev'
           ref: values
       destination:
         server: https://kubernetes.default.svc

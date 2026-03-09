@@ -24,7 +24,7 @@ spec:
             esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'grafana-dashboards-{{.env}}'
+      name: 'grafana-dashboards-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -34,7 +34,7 @@ spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: kubernetes/manifests/monitoring/dashboards
       destination:
         server: https://kubernetes.default.svc
