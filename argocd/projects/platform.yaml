@@ -14,7 +14,7 @@ spec:
   description: "Platform infrastructure — Istio, monitoring, ESO, namespaces"
 
   sourceRepos:
-    - __REPO_URL__
+    - https://github.com/PodYourLife/k8s-platform.git
     - https://istio-release.storage.googleapis.com/charts
     - https://prometheus-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
