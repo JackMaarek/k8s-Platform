@@ -17,6 +17,18 @@ spec:
     targetRevision: 3.4.1
     helm:
       releaseName: kyverno
+      cleanupJobs:
+        admissionReports:
+          image:
+            registry: ghcr.io
+            repository: kyverno/kyverno-cli
+            tag: v1.13.4  # -> Kyverno 3.4.1
+        clusterAdmissionReports:
+          image:
+            registry: ghcr.io
+            repository: kyverno/kyverno-cli
+            tag: v1.13.4  # -> Kyverno 3.4.1
+
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
