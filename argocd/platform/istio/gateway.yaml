@@ -23,6 +23,14 @@ spec:
     targetRevision: 1.27.1
     helm:
       releaseName: istio-ingressgateway
+      values: |
+        # The ingress gateway is itself an Envoy proxy — sidecar injection must
+        # be disabled to prevent the mutating webhook from injecting a second proxy.
+        # Without this, the pod gets a container with image "auto" that cannot be
+        # resolved outside of a fully-running istiod context.
+        podAnnotations:
+          sidecar.istio.io/inject: "false"
+      
 
   destination:
     server: https://kubernetes.default.svc
