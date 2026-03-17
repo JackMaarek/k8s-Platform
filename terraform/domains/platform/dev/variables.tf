@@ -34,3 +34,8 @@ variable "node_groups" {
     }))
   }))
 }
+
+variable "state_bucket" {
+  description = "S3 bucket name for Terraform remote state"
+  type        = string
+}

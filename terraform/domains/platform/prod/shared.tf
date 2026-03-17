@@ -1,10 +1,15 @@
+# shared.tf
+# Responsibility: read _core/shared outputs via remote state
+# This is the single source of truth for all cross-domain references.
+# Never duplicate cluster_id, subnet_ids, or node_role_arn — always read from here.
+
 data "terraform_remote_state" "shared" {
   backend = "s3"
 
   config = {
-    bucket = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID_DEV__"
-    key    = "core/shared/prod/terraform.tfstate"
-    region = "eu-west-3"
+    bucket = var.state_bucket
+    key    = "core/shared/${var.environment}/terraform.tfstate"
+    region = var.aws_region
   }
 }
 
