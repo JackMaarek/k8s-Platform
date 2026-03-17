@@ -1,8 +1,14 @@
-# Prometheus Helm Chart Values
+# prometheus-values.yaml
 # Chart: prometheus-community/kube-prometheus-stack
+#
+# Responsabilité : collecte et stockage des métriques.
+# Contient : PrometheusOperator, Prometheus, Alertmanager, exporters, règles d'alerte.
+# Ne contient PAS : configuration Grafana → voir grafana-values.yaml
 
 prometheusOperator:
   enabled: true
+  # Les Jobs admission webhook doivent terminer proprement.
+  # Un sidecar Istio bloque la terminaison (le sidecar ne s'arrête jamais seul).
   admissionWebhooks:
     patch:
       podAnnotations:
@@ -24,15 +30,21 @@ prometheusOperator:
 prometheus:
   enabled: true
   prometheusSpec:
-    # Injects the cluster label through all metrics
+    # __CLUSTER_NAME__ est remplacé par platform-bot à l'init.
+    # Ce label est injecté sur toutes les métriques pour les vues multi-cluster Grafana.
     externalLabels:
-      cluster: minikube
+      cluster: __CLUSTER_NAME__
+    # Découverte automatique des ServiceMonitors et PodMonitors dans tous les namespaces.
+    # Chaque composant déclare son propre ServiceMonitor — pas de liste centrale ici.
     namespaceSelector:
       any: true
     serviceMonitorSelector: {}
     serviceMonitorNamespaceSelector: {}
     podMonitorSelector: {}
     podMonitorNamespaceSelector: {}
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
     retention: 7d
     retentionSize: "10GB"
     resources:
@@ -49,99 +61,8 @@ prometheus:
           resources:
             requests:
               storage: 20Gi
-    serviceMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelectorNilUsesHelmValues: false
-    ruleSelectorNilUsesHelmValues: false
-    additionalScrapeConfigs:
-      - job_name: 'istiod'
-        kubernetes_sd_configs:
-          - role: endpoints
-            namespaces:
-              names:
-                - istio-system
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-            action: keep
-            regex: istiod;http-monitoring
-      - job_name: 'envoy-stats'
-        metrics_path: /stats/prometheus
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_container_port_name]
-            action: keep
-            regex: '.*-envoy-prom'
-          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            regex: ([^:]+)(?::\d+)?;(\d+)
-            replacement: $1:15090
-            target_label: __address__
-          - action: labelmap
-            regex: __meta_kubernetes_pod_label_(.+)
-          - source_labels: [__meta_kubernetes_namespace]
-            action: replace
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_name]
-            action: replace
-            target_label: pod_name
-  # Ingress (disabled by default)
   ingress:
     enabled: false
-
-grafana:
-  enabled: true
-  admin:
-    existingSecret: grafana-admin-credentials
-    userKey: admin-user
-    passwordKey: admin-password
-  initChownData:
-    enabled: false
-  persistence:
-    enabled: true
-    size: 10Gi
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 250m
-      memory: 256Mi
-
-  # ── Datasources
-  # Une seule datasource default — Prometheus
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          access: proxy
-          url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-          jsonData:
-            timeInterval: 30s
-        - name: Loki
-          type: loki
-          access: proxy
-          url: http://loki.monitoring.svc.cluster.local:3100
-          isDefault: false
-  sidecar:
-    dashboards:
-      enabled: true
-      label: grafana_dashboard
-      labelValue: "1"
-      folderAnnotation: k8s-sidecar-target-directory
-      provider:
-        foldersFromFilesStructure: true
-    resources:
-      limits:
-        cpu: 100m
-        memory: 128Mi
-      requests:
-        cpu: 50m
-        memory: 64Mi
-  service:
-    type: ClusterIP
-    port: 80
 
 alertmanager:
   enabled: true

@@ -1,0 +1,22 @@
+# datasource-loki.yaml
+# Responsabilité : déclarer la datasource Loki dans Grafana.
+#
+# Chargé automatiquement par le sidecar k8s-sidecar via le label grafana_datasource=1.
+# Dépend de : loki ApplicationSet (wave 5) qui doit être Running avant la sync wave 7.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-loki
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki.monitoring.svc.cluster.local:3100
+        isDefault: false

@@ -1,12 +1,10 @@
-# Deploys Grafana datasource ConfigMaps
-# Grafana sidecar watches for ConfigMaps with label grafana_datasource=1
-# and loads them automatically — no Grafana restart needed
-# Datasources: Prometheus (default) and Loki
-# Note: datasources are also defined in prometheus-values.yaml
-# This ConfigMap is the authoritative source and overrides Helm values on load
+# argocd/platform/monitoring/datasources.yaml
+# Responsabilité : déployer les ConfigMaps de datasources Grafana.
+# Chaque ConfigMap dans kubernetes/manifests/monitoring/datasources/ déclare
+# une datasource unique — le sidecar k8s-sidecar les hot-load dans Grafana.
 #
-# Wave 7 — after prometheus (wave 4):
-# Grafana pod must exist before datasources can be hot-reloaded by the sidecar
+# Wave 7 — après prometheus (wave 4) : Grafana doit être Running avant
+# que le sidecar puisse recharger les datasources.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

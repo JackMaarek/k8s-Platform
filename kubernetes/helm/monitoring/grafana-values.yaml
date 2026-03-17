@@ -1,0 +1,71 @@
+# grafana-values.yaml
+# Chart: prometheus-community/kube-prometheus-stack (subchart grafana)
+#
+# Responsabilité : visualisation — configuration complète de Grafana.
+# Contient : Grafana, sidecar dashboards, persistence, resources.
+# Ne contient PAS : datasources → voir kubernetes/manifests/monitoring/datasources/
+#
+# ── Datasources ───────────────────────────────────────────────────────────────
+# Les datasources sont déclarées exclusivement dans :
+#   kubernetes/manifests/monitoring/datasources/
+#   Un fichier par datasource, chacun est une ConfigMap avec label grafana_datasource=1.
+#   Le sidecar k8s-sidecar les hot-load sans redémarrage de Grafana.
+#
+# La ConfigMap native du chart (prometheus-kube-prometheus-grafana-datasource)
+# est désactivée via defaultDatasourceEnabled: false pour éviter tout doublon.
+#
+# ── Dashboards ────────────────────────────────────────────────────────────────
+# Les dashboards sont déclarés dans :
+#   kubernetes/manifests/monitoring/dashboards/
+#   Un fichier par groupe de dashboards, ConfigMap avec label grafana_dashboard=1.
+#   Le sidecar les hot-load et les organise en dossiers via l'annotation
+#   k8s-sidecar-target-directory.
+#
+# ── Credentials admin ─────────────────────────────────────────────────────────
+# Injectés depuis le Secret grafana-admin-credentials créé au bootstrap.
+# Ne jamais stocker de credentials dans ce fichier.
+
+grafana:
+  enabled: true
+  admin:
+    existingSecret: grafana-admin-credentials
+    userKey: admin-user
+    passwordKey: admin-password
+  # initChownData nécessite root — désactivé pour respecter la PodSecurity restricted.
+  initChownData:
+    enabled: false
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  sidecar:
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      # Désactive la ConfigMap de datasource générée par le chart.
+      # Toutes les datasources sont déclarées dans manifests/monitoring/datasources/.
+      defaultDatasourceEnabled: false
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      folderAnnotation: k8s-sidecar-target-directory
+      provider:
+        foldersFromFilesStructure: true
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+  service:
+    type: ClusterIP
+    port: 80

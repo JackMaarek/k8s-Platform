@@ -1,0 +1,26 @@
+# datasource-alertmanager.yaml
+# Responsabilité : déclarer la datasource Alertmanager dans Grafana.
+#
+# Chargé automatiquement par le sidecar k8s-sidecar via le label grafana_datasource=1.
+# handleGrafanaManagedAlerts: false — Grafana n'écrit pas dans Alertmanager,
+# il le consulte uniquement en lecture pour afficher les silences et les alertes.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-alertmanager
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  alertmanager.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Alertmanager
+        type: alertmanager
+        uid: alertmanager
+        access: proxy
+        url: http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093
+        isDefault: false
+        jsonData:
+          handleGrafanaManagedAlerts: false
+          implementation: prometheus
