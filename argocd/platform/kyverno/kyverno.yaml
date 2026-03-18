@@ -32,14 +32,12 @@ spec:
               registry: ghcr.io
               repository: kyverno/kyverno-cli
               tag: v1.13.4
-        # reportsController.cleanupJobs covers the kyverno-clean-reports Job
-        # created by the reports controller — distinct from cleanupJobs above.
-        reportsController:
-          cleanupJobs:
-            image:
-              registry: ghcr.io
-              repository: kyverno/kyverno-cli
-              tag: v1.13.4
+        # policyReportsCleanup is a Helm post-upgrade hook — separate from cleanupJobs
+        policyReportsCleanup:
+          image:
+            registry: ghcr.io
+            repository: kyverno/kyverno-cli
+            tag: v1.13.4
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
