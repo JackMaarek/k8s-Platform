@@ -6,7 +6,7 @@
 #   - Cloud provider set to AWS / eu-west-3 for accurate on-demand pricing
 #   - Prometheus endpoint points to the in-cluster kube-prometheus-stack instance
 #   - UI enabled with ClusterIP — access via kubectl port-forward or Istio VirtualService
-#   - Istio sidecar injection disabled on this namespace (monitoring workload, not a mesh service)
+#   - Istio sidecar injection enabled on finops namespace — trafic OpenCost ↔ Prometheus in mesh
 #   - GPU cost tracking enabled — critical for QuanvNN workloads on g4dn.xlarge nodes
 
 opencost:
@@ -29,7 +29,6 @@ opencost:
       # Internal cluster DNS — prometheus-operated service from kube-prometheus-stack
       internal:
         enabled: true
-        # finops is the business domain namespace — matches destination in the ApplicationSet
         namespaceName: monitoring
         port: 9090
         serviceName: prometheus-operated
@@ -43,6 +42,17 @@ opencost:
         cpu: 999m
         memory: 1Gi
 
+    # SecurityContext — required for PSS baseline compliance on finops namespace.
+    # allowPrivilegeEscalation and capabilities.drop are enforced by the namespace
+    # policy audit; setting them explicitly avoids Kyverno audit violations.
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+
   # ── UI (OpenCost frontend) ───────────────────────────────────────────────────
   ui:
     enabled: true
@@ -54,6 +64,15 @@ opencost:
         cpu: 999m
         memory: 1Gi
 
+    # SecurityContext — same requirements as exporter above
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+
   # ── Metrics ─────────────────────────────────────────────────────────────────
   # Expose /metrics on port 9003 for Prometheus scraping via ServiceMonitor
   metrics:
@@ -63,7 +82,8 @@ opencost:
       enabled: false
 
   # ── Pod annotations ─────────────────────────────────────────────────────────
-  # Disable Istio sidecar injection — opencost namespace has injection disabled
+  # Empty — Istio injection is handled at namespace level (finops: enabled).
+  # No override needed here.
   podAnnotations: {}
 
   # ── RBAC ────────────────────────────────────────────────────────────────────

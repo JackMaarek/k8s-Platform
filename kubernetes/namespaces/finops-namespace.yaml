@@ -16,6 +16,8 @@ metadata:
     # Platform domain label — used by RBAC and NetworkPolicy selectors
     platform.podyourlife.io/domain: finops
     istio-injection: enabled
-    pod-security.kubernetes.io/enforce: restricted
+    # PSS baseline — istio-init requires NET_ADMIN/NET_RAW which restricted forbids.
+    # All namespaces with Istio injection enabled use baseline minimum.
+    pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

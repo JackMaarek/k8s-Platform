@@ -28,6 +28,8 @@ spec:
                 - argocd
                 - istio-system
                 - monitoring
+                - finops
+                - external-secrets
       validate:
         message: "Pods must have 'app.kubernetes.io/name' and 'env' labels."
         pattern:

@@ -52,3 +52,6 @@ spec:
                   - key: "{{ element.image }}"
                     operator: NotEquals
                     value: "quay.io/kubecost/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "ghcr.io/opencost/*"
