@@ -6,7 +6,7 @@
 #   - Cloud provider set to AWS / eu-west-3 for accurate on-demand pricing
 #   - Prometheus endpoint points to the in-cluster kube-prometheus-stack instance
 #   - UI enabled with ClusterIP — access via kubectl port-forward or Istio VirtualService
-#   - Istio sidecar injection enabled on finops namespace — trafic OpenCost ↔ Prometheus in mesh
+#   - Istio sidecar injection disabled on finops namespace — istio-init incompatible with PSS restricted
 #   - GPU cost tracking enabled — critical for QuanvNN workloads on g4dn.xlarge nodes
 
 opencost:
@@ -14,6 +14,8 @@ opencost:
   # AWS pricing API is queried to resolve on-demand rates per instance type.
   # Spot pricing is approximated as 70% of on-demand (OpenCost default heuristic).
   cloudProviderApiKey: ""  # Not required for AWS public pricing API
+
+  # ── Exporter ────────────────────────────────────────────────────────────────
   exporter:
     cloudProviderApiKey: ""
     defaultClusterId: "k8s-platform"
@@ -22,16 +24,6 @@ opencost:
     aws:
       # Region used for AWS pricing API lookups
       region: eu-west-3
-
-    # Prometheus scrape endpoint
-    # Must match the service name of the kube-prometheus-stack prometheus instance
-    prometheus:
-      # Internal cluster DNS — prometheus-operated service from kube-prometheus-stack
-      internal:
-        enabled: true
-        namespaceName: monitoring
-        port: 9090
-        serviceName: prometheus-operated
 
     # Resource requests/limits — OpenCost is lightweight
     resources:
@@ -42,9 +34,9 @@ opencost:
         cpu: 999m
         memory: 1Gi
 
-    # SecurityContext — required for PSS baseline compliance on finops namespace.
-    # allowPrivilegeEscalation and capabilities.drop are enforced by the namespace
-    # policy audit; setting them explicitly avoids Kyverno audit violations.
+    # SecurityContext — required for PSS restricted compliance on finops namespace.
+    # allowPrivilegeEscalation and capabilities.drop enforced explicitly
+    # to avoid Kyverno audit violations.
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -52,6 +44,17 @@ opencost:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
+
+  # ── Prometheus endpoint ──────────────────────────────────────────────────────
+  # Must be at opencost.prometheus level (not opencost.exporter.prometheus).
+  # The chart builds PROMETHEUS_SERVER_ENDPOINT from serviceName + namespaceName + port.
+  prometheus:
+    internal:
+      enabled: true
+      # kube-prometheus-stack service in the monitoring namespace
+      namespaceName: monitoring
+      port: 9090
+      serviceName: prometheus-operated
 
   # ── UI (OpenCost frontend) ───────────────────────────────────────────────────
   ui:
@@ -82,8 +85,7 @@ opencost:
       enabled: false
 
   # ── Pod annotations ─────────────────────────────────────────────────────────
-  # Empty — Istio injection is handled at namespace level (finops: enabled).
-  # No override needed here.
+  # Empty — no sidecar override needed, injection disabled at namespace level.
   podAnnotations: {}
 
   # ── RBAC ────────────────────────────────────────────────────────────────────

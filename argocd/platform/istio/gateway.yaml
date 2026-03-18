@@ -30,14 +30,6 @@ spec:
         podAnnotations:
           sidecar.istio.io/inject: "false"
 
-        # Explicit proxy image — the 'auto' resolution mechanism delegates
-        # image selection to istiod at runtime via the gateway injection template.
-        # On Kind (no registry mirror), this resolution fails silently and the
-        # pod stays in ImagePullBackOff. Pinning the image bypasses this entirely.
-        image:
-          repository: docker.io/istio/proxyv2
-          tag: "1.27.1"
-
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
