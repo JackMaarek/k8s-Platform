@@ -1,0 +1,648 @@
+# ConfigMap — Monitoring Stack
+# Chargé automatiquement par le sidecar k8s-sidecar via grafana_dashboard=1.
+# Dossier Grafana : Platform
+# UID du dashboard : monitoring-stack
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-monitoring-stack
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    k8s-sidecar-target-directory: "Platform"
+data:
+  monitoring-stack.json: |
+    {
+      "title": "Monitoring Stack",
+      "uid": "monitoring-stack",
+      "description": "\u00c9tat de la stack d'observabilit\u00e9 \u2014 Prometheus, Loki, Promtail, Alertmanager",
+      "editable": true,
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-3h",
+        "to": "now"
+      },
+      "tags": [
+        "platform",
+        "monitoring"
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "label": "Prometheus",
+            "hide": 0
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## Prometheus"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Targets Up",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(up)",
+              "legendFormat": "Up"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Targets Down",
+          "type": "stat",
+          "gridPos": {
+            "x": 3,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(up == 0) or vector(0)",
+              "legendFormat": "Down"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Samples Ingested/s",
+          "type": "stat",
+          "gridPos": {
+            "x": 6,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(prometheus_tsdb_head_samples_appended_total[5m]))",
+              "legendFormat": "samples/s"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "TSDB Size",
+          "type": "stat",
+          "gridPos": {
+            "x": 9,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "prometheus_tsdb_storage_blocks_bytes",
+              "legendFormat": "TSDB"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Scrape Duration p99 par job",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 1,
+            "w": 12,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "histogram_quantile(0.99, sum by (job, le) (rate(prometheus_target_interval_length_seconds_bucket[5m])))",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Targets Up/Down par job",
+          "type": "table",
+          "gridPos": {
+            "x": 0,
+            "y": 5,
+            "w": 12,
+            "h": 7
+          },
+          "options": {
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "1": {
+                            "text": "\u25cf UP",
+                            "color": "green"
+                          }
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "options": {
+                          "0": {
+                            "text": "\u25cf DOWN",
+                            "color": "red"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.displayMode",
+                    "value": "color-text"
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "up",
+              "legendFormat": "",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {
+                "mode": "columns"
+              }
+            },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "job",
+                    "namespace",
+                    "instance",
+                    "Value"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "renameByName": {
+                  "job": "Job",
+                  "namespace": "Namespace",
+                  "instance": "Instance",
+                  "Value": "Status"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "Scrape Errors par job",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 5,
+            "w": 12,
+            "h": 7
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (job) (rate(prometheus_target_scrape_pool_exceeded_target_limit_total[5m]))",
+              "legendFormat": "{{job}} \u2014 limit exceeded"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 12,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## Alertmanager"
+          }
+        },
+        {
+          "id": 11,
+          "title": "Alertes actives",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 13,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(alertmanager_alerts{state=\"active\"}) or vector(0)",
+              "legendFormat": ""
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "title": "Alertes silenc\u00e9es",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 13,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(alertmanager_alerts{state=\"suppressed\"}) or vector(0)",
+              "legendFormat": ""
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "title": "Notifications envoy\u00e9es/s",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 8,
+            "y": 13,
+            "w": 16,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (integration) (rate(alertmanager_notifications_total[5m]))",
+              "legendFormat": "{{integration}}"
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 17,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## Loki & Promtail"
+          }
+        },
+        {
+          "id": 21,
+          "title": "Lignes ing\u00e9r\u00e9es/s",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(loki_distributor_lines_received_total[5m]))",
+              "legendFormat": "lines/s"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "title": "Bytes ing\u00e9r\u00e9s/s",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(loki_distributor_bytes_received_total[5m]))",
+              "legendFormat": "bytes/s"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "title": "Streams actifs Loki",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(loki_ingester_streams_created_total)",
+              "legendFormat": "streams"
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "title": "Ingestion rate par namespace",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 18,
+            "w": 12,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (namespace) (rate(promtail_sent_bytes_total[5m]))",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        }
+      ]
+    }

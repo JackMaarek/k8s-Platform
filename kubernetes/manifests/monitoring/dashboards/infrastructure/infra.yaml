@@ -7504,7 +7504,7 @@ data:
 kind: ConfigMap
 metadata:
   annotations:
-    k8s-sidecar-target-directory: Infrastructure
+    k8s-sidecar-target-directory: "Infrastructure"
   labels:
     grafana_dashboard: '1'
   name: grafana-dashboards-infra

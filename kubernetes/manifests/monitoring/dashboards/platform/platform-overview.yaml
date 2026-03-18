@@ -1,0 +1,876 @@
+# ConfigMap — Platform Overview
+# Chargé automatiquement par le sidecar k8s-sidecar via grafana_dashboard=1.
+# Dossier Grafana : Platform
+# UID du dashboard : platform-overview
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-platform-overview
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    k8s-sidecar-target-directory: "Platform"
+data:
+  platform-overview.json: |
+    {
+      "title": "Platform Overview",
+      "uid": "platform-overview",
+      "description": "\u00c9tat de sant\u00e9 global de la plateforme PodYourLife \u2014 ArgoCD, Istio, Monitoring, Kyverno, Cluster",
+      "editable": true,
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "platform",
+        "overview"
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "label": "Prometheus",
+            "hide": 0,
+            "current": {
+              "text": "Prometheus",
+              "value": "prometheus"
+            }
+          },
+          {
+            "name": "loki_datasource",
+            "type": "datasource",
+            "query": "loki",
+            "label": "Loki",
+            "hide": 0,
+            "current": {
+              "text": "Loki",
+              "value": "loki"
+            }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## \ud83d\ude80 ArgoCD \u2014 GitOps Pipeline"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Apps Healthy",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": []
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(argocd_app_info{health_status=\"Healthy\"})",
+              "legendFormat": "Healthy"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Apps Degraded",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(argocd_app_info{health_status=~\"Degraded|Missing|Unknown\"}) or vector(0)",
+              "legendFormat": "Degraded"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Out of Sync",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(argocd_app_info{sync_status=\"OutOfSync\"}) or vector(0)",
+              "legendFormat": "OutOfSync"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Sync History (1h)",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 1,
+            "w": 12,
+            "h": 4
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 15
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "success"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "failed"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "red",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "success",
+              "datasource": "$datasource",
+              "expr": "sum(increase(argocd_app_sync_total{phase=\"Succeeded\"}[5m]))",
+              "legendFormat": "Succeeded"
+            },
+            {
+              "refId": "failed",
+              "datasource": "$datasource",
+              "expr": "sum(increase(argocd_app_sync_total{phase=\"Failed\"}[5m]))",
+              "legendFormat": "Failed"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 5,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## \ud83d\udd78\ufe0f Istio \u2014 Service Mesh"
+          }
+        },
+        {
+          "id": 11,
+          "title": "Request Success Rate",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 6,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 0.95
+                  },
+                  {
+                    "color": "green",
+                    "value": 0.99
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(istio_requests_total{response_code!~\"5.*\"}[5m])) / sum(rate(istio_requests_total[5m]))",
+              "legendFormat": "Success rate"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "title": "P99 Latency",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 6,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 200
+                  },
+                  {
+                    "color": "red",
+                    "value": 500
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "histogram_quantile(0.99, sum(rate(istio_request_duration_milliseconds_bucket[5m])) by (le)) * 1000",
+              "legendFormat": "p99"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "title": "Request Rate (RPS)",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 6,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(istio_requests_total[5m]))",
+              "legendFormat": "RPS"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "title": "Traffic by Namespace",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 6,
+            "w": 12,
+            "h": 4
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (destination_service_namespace) (rate(istio_requests_total[5m]))",
+              "legendFormat": "{{destination_service_namespace}}"
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 10,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## \ud83d\udcca Monitoring Stack \u2014 Prometheus \u00b7 Loki \u00b7 Alertmanager"
+          }
+        },
+        {
+          "id": 21,
+          "title": "Prometheus Targets Up",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 11,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(up)",
+              "legendFormat": "Targets up"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "title": "Active Alerts",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 11,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(alertmanager_alerts{state=\"active\"}) or vector(0)",
+              "legendFormat": "Alerts"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "title": "Loki Ingestion Rate",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 11,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(loki_distributor_lines_received_total[5m]))",
+              "legendFormat": "Lines/s"
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "title": "Scrape Duration p99",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 11,
+            "w": 12,
+            "h": 4
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "histogram_quantile(0.99, sum by (job, le) (rate(prometheus_target_interval_length_seconds_bucket[5m])))",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 15,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## \ud83d\udee1\ufe0f Kyverno \u2014 Policy Engine"
+          }
+        },
+        {
+          "id": 31,
+          "title": "Policy Violations",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 16,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 10
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(kyverno_policy_results_total{rule_result=\"fail\"}) or vector(0)",
+              "legendFormat": "Violations"
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "title": "Admission Requests (5m)",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 16,
+            "w": 4,
+            "h": 4
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum(rate(kyverno_admission_requests_total[5m]))",
+              "legendFormat": "Req/s"
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "title": "Policy Results by Rule",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 8,
+            "y": 16,
+            "w": 16,
+            "h": 4
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (rule_result) (rate(kyverno_policy_results_total[5m]))",
+              "legendFormat": "{{rule_result}}"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 20,
+            "w": 24,
+            "h": 1
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "## \u2699\ufe0f Cluster \u2014 Ressources"
+          }
+        },
+        {
+          "id": 41,
+          "title": "CPU Usage by Namespace",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 5
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\", namespace!=\"\"}[5m]))",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "title": "Memory Usage by Namespace",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 21,
+            "w": 12,
+            "h": 5
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10
+              }
+            }
+          },
+          "targets": [
+            {
+              "datasource": "$datasource",
+              "expr": "sum by (namespace) (container_memory_working_set_bytes{container!=\"\", namespace!=\"\"})",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        }
+      ]
+    }
