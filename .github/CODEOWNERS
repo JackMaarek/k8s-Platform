@@ -1,0 +1,15 @@
+# CODEOWNERS — k8s-platform
+# Reviewers automatiquement assignés selon le chemin du fichier.
+# Format: <pattern> <github-username-or-team>
+
+# Platform core — toute modification nécessite une review
+*                           @JackMaarek
+
+# Terraform — extra caution sur les changements d'infra
+/terraform/                 @JackMaarek
+
+# ArgoCD — changements de delivery pipeline
+/argocd/                    @JackMaarek
+
+# Secrets — aucune exception
+/kubernetes/secrets/        @JackMaarek
