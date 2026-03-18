@@ -1,21 +1,29 @@
+# ServiceMonitors ArgoCD
+# Corrige les sélecteurs — les labels réels sur les services ArgoCD sont :
+#   app.kubernetes.io/name: argocd-application-controller
+#   app.kubernetes.io/name: argocd-server
+#   app.kubernetes.io/name: argocd-repo-server
+#
+# Les anciens sélecteurs (argocd-metrics, argocd-server-metrics) n'existent pas.
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: argocd
+  name: argocd-application-controller
   namespace: argocd
   labels:
     release: prometheus
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-metrics
+      app.kubernetes.io/name: argocd-application-controller
+  namespaceSelector:
+    matchNames:
+      - argocd
   endpoints:
     - port: metrics
       interval: 30s
       path: /metrics
-  namespaceSelector:
-    matchNames:
-      - argocd
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -27,14 +35,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-server-metrics
+      app.kubernetes.io/name: argocd-server
+  namespaceSelector:
+    matchNames:
+      - argocd
   endpoints:
     - port: metrics
       interval: 30s
       path: /metrics
-  namespaceSelector:
-    matchNames:
-      - argocd
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -47,10 +55,10 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: argocd-repo-server
+  namespaceSelector:
+    matchNames:
+      - argocd
   endpoints:
     - port: metrics
       interval: 30s
       path: /metrics
-  namespaceSelector:
-    matchNames:
-      - argocd
