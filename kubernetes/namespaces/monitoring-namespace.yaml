@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: monitoring
   labels:
-    name: monitoring
     platform.podyourlife.io/domain: observability
     # Disable Istio sidecar injection — prometheus Jobs cannot terminate with a sidecar
     istio-injection: disabled
