@@ -15,9 +15,10 @@ metadata:
   labels:
     # Platform domain label — used by RBAC and NetworkPolicy selectors
     platform.podyourlife.io/domain: finops
-    istio-injection: enabled
-    # PSS baseline — istio-init requires NET_ADMIN/NET_RAW which restricted forbids.
-    # All namespaces with Istio injection enabled use baseline minimum.
-    pod-security.kubernetes.io/enforce: baseline
+    # Istio injection disabled — istio-init requires NET_ADMIN/NET_RAW
+    # incompatible with any PSS level below privileged. OpenCost is platform
+    # tooling, not a mesh service — mTLS not required here.
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

@@ -3,8 +3,8 @@
 # Depends on: istiod
 #
 # Default service type: LoadBalancer
-# Minikube: run 'minikube tunnel' to get an external IP
-# EKS/GKE: cloud NLB provisioned automatically — no config needed
+# EKS: cloud NLB provisioned automatically via AWS Load Balancer Controller
+# Kind: NodePort mapped to host port 80/443 via Kind cluster config
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -24,13 +24,19 @@ spec:
     helm:
       releaseName: istio-ingressgateway
       values: |
-        # The ingress gateway is itself an Envoy proxy — sidecar injection must
-        # be disabled to prevent the mutating webhook from injecting a second proxy.
-        # Without this, the pod gets a container with image "auto" that cannot be
-        # resolved outside of a fully-running istiod context.
+        # Disable sidecar injection — the gateway is itself an Envoy proxy.
+        # Injecting a second proxy would create a circular dependency and
+        # result in a container with image "auto" that cannot be resolved.
         podAnnotations:
           sidecar.istio.io/inject: "false"
-      
+
+        # Explicit proxy image — the 'auto' resolution mechanism delegates
+        # image selection to istiod at runtime via the gateway injection template.
+        # On Kind (no registry mirror), this resolution fails silently and the
+        # pod stays in ImagePullBackOff. Pinning the image bypasses this entirely.
+        image:
+          repository: docker.io/istio/proxyv2
+          tag: "1.27.1"
 
   destination:
     server: https://kubernetes.default.svc

@@ -32,8 +32,10 @@ spec:
               registry: ghcr.io
               repository: kyverno/kyverno-cli
               tag: v1.13.4
-          # Override the one-shot clean-reports Job — bitnami/kubectl removed from docker.io
-          cleanReportsJob:
+        # reportsController.cleanupJobs covers the kyverno-clean-reports Job
+        # created by the reports controller — distinct from cleanupJobs above.
+        reportsController:
+          cleanupJobs:
             image:
               registry: ghcr.io
               repository: kyverno/kyverno-cli
