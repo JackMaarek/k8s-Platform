@@ -47,8 +47,9 @@ Infrastructure layers are strictly ordered — each layer reads outputs from the
 2. terraform/domains/platform/{env}
    └── reads _core/shared state → provisions node groups, CoreDNS addon, domain IRSA
 
-3. scripts/setup-local.sh  (or CI)
+3. platform-bot local up  (or CI)
    └── configures kubectl → bootstraps ArgoCD → syncs all platform ApplicationSets
+   └── see docs/local-development.md for the full local bootstrap guide
 ```
 
 Never apply a domain before its `_core/shared` env. Never apply prod manually — use CI.
@@ -80,9 +81,10 @@ cd ../../../domains/platform/dev
 cp terraform.tfvars.example terraform.tfvars
 terraform init && terraform apply
 
-# 5. Bootstrap ArgoCD
+# 5. Bootstrap platform (local Kind cluster)
 $(cd ../../_core/shared/dev && terraform output -raw configure_kubectl)
-./scripts/setup-local.sh
+platform-bot local up --env dev
+# See docs/local-development.md for the full walkthrough
 ```
 
 ---
@@ -166,5 +168,5 @@ GPU nodes (g4dn.xlarge) start at `desired_size = 0` — zero cost until a GPU wo
 | Adding a product app | `docs/examples/argocd-application.yaml` |
 | Secret management | `docs/examples/external-secret.yaml` |
 | GPU workloads | `docs/examples/gpu-workload.yaml` |
+| Cost monitoring (OpenCost) | `argocd/platform/opencost/opencost.yaml` |
 | First-time Terraform bootstrap | `docs/examples/terraform-new-env.md` |
-| ArgoCD GitOps | `argocd/README.md` |
