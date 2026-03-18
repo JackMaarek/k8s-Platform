@@ -26,6 +26,8 @@
 # Ne jamais stocker de credentials dans ce fichier.
 
 grafana:
+  defaultDashboardsEnabled: true
+  defaultDashboardsFolder: Infrastructure
   enabled: true
   admin:
     existingSecret: grafana-admin-credentials
