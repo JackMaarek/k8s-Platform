@@ -1,0 +1,31 @@
+# ServiceMonitor — OpenCost cost exporter
+# Prometheus discovers this via serviceMonitorNamespaceSelector: any: true
+# (configured in kube-prometheus-stack values)
+#
+# OpenCost exposes two scrape targets:
+#   - /metrics on port 9003 (cost allocation metrics)
+#   - /metrics on port 9090 (UI metrics, optional)
+#
+# The label release: prometheus must match the Prometheus operator
+# serviceMonitorSelector used by kube-prometheus-stack.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opencost
+  namespace: finops
+  labels:
+    # Must match Prometheus operator serviceMonitorSelector
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opencost
+  namespaceSelector:
+    matchNames:
+      - finops
+  endpoints:
+    # Cost allocation metrics endpoint
+    - port: http
+      path: /metrics
+      interval: 30s
+      scheme: http

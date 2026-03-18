@@ -3,9 +3,10 @@ kind: Namespace
 metadata:
   name: monitoring
   labels:
-    name: monitoring
+    platform.podyourlife.io/domain: observability
     # Disable Istio sidecar injection — prometheus Jobs cannot terminate with a sidecar
     istio-injection: disabled
+    # PSS privileged required — node-exporter runs with hostPID: true and hostNetwork: true
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

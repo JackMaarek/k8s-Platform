@@ -21,6 +21,7 @@ spec:
       name: istio-validator-istio-system
       jsonPointers:
         - /webhooks/0/clientConfig/caBundle
+        - /webhooks/0/failurePolicy
     - group: admissionregistration.k8s.io
       kind: MutatingWebhookConfiguration
       name: istio-sidecar-injector
@@ -56,6 +57,13 @@ spec:
           # Merge Envoy stats into the app pod's /metrics endpoint
           enablePrometheusMerge: true
 
+        # Resolve 'auto' proxy image for gateway injection on Kind.
+        # Without global.hub/tag, the gateway template cannot resolve
+        # the proxy image at runtime when no registry mirror is configured.
+        global:
+          hub: docker.io/istio
+          tag: 1.27.1
+
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
@@ -66,4 +74,3 @@ spec:
       selfHeal: true
     syncOptions:
       - ServerSideApply=true
-      - CreateNamespace=true

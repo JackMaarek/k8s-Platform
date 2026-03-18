@@ -29,6 +29,11 @@ spec:
         argocd.argoproj.io/sync-wave: "-3"
     spec:
       project: platform
+      ignoreDifferences:
+        - group: ""
+          kind: Namespace
+          jsonPointers:
+            - /metadata/annotations
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
         targetRevision: '{{.targetRevision}}'

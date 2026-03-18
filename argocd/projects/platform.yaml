@@ -22,6 +22,7 @@ spec:
     - https://helm.releases.hashicorp.com
     - https://charts.external-secrets.io
     - https://kyverno.github.io/kyverno/
+    - https://opencost.github.io/opencost-helm-chart
 
   destinations:
     - namespace: istio-system
@@ -43,6 +44,8 @@ spec:
     - namespace: kyverno
       server: https://kubernetes.default.svc
     - namespace: external-secrets
+      server: https://kubernetes.default.svc
+    - namespace: finops
       server: https://kubernetes.default.svc
 
   # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC

@@ -32,6 +32,12 @@ spec:
               registry: ghcr.io
               repository: kyverno/kyverno-cli
               tag: v1.13.4
+        # policyReportsCleanup is a Helm post-upgrade hook — separate from cleanupJobs
+        policyReportsCleanup:
+          image:
+            registry: ghcr.io
+            repository: kyverno/kyverno-cli
+            tag: v1.13.4
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
@@ -40,5 +46,4 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true
