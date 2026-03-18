@@ -1,0 +1,22 @@
+# Namespace: argocd
+# Domain: GitOps delivery engine
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+#
+# Special case: this namespace is created by platform-bot during bootstrap
+# (helm install --create-namespace) before ArgoCD itself is running.
+# This manifest is applied by ArgoCD on first sync to enforce labels —
+# applying labels to an existing namespace is idempotent.
+#
+# Istio injection disabled — ArgoCD components must not get sidecars:
+# the argocd-server and repo-server handle git+helm traffic that must
+# not be intercepted by Envoy at bootstrap time.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    platform.podyourlife.io/domain: gitops
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

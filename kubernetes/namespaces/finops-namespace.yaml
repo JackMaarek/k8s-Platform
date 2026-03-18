@@ -1,0 +1,21 @@
+# Namespace: finops
+# Domain: cloud cost monitoring and FinOps tooling
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+#
+# Istio injection is disabled — cost monitoring workloads are platform
+# infrastructure, not mesh services. Injecting sidecars here adds noise
+# to cost metrics and creates unnecessary inter-pod mTLS overhead.
+
+# Istio injection enabled — OpenCost runs as long-lived Deployments only.
+# Trafic OpenCost ↔ Prometheus is inside the mesh and benefits from mTLS.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: finops
+  labels:
+    # Platform domain label — used by RBAC and NetworkPolicy selectors
+    platform.podyourlife.io/domain: finops
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

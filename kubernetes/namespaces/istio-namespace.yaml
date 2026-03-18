@@ -1,0 +1,15 @@
+# Namespace: istio-system
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+
+# Istio injection explicitly disabled — circular dependency: istiod cannot
+# depend on a proxy that itself requires istiod to receive its configuration.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    istio-injection: disabled
+    platform.podyourlife.io/domain: servicemesh
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

@@ -1,0 +1,81 @@
+# OpenCost Helm values — PodYourLife k8s-platform
+# Chart: opencost/opencost  v1.42.0
+# Docs: https://www.opencost.io/docs/configuration
+#
+# Design decisions:
+#   - Cloud provider set to AWS / eu-west-3 for accurate on-demand pricing
+#   - Prometheus endpoint points to the in-cluster kube-prometheus-stack instance
+#   - UI enabled with ClusterIP — access via kubectl port-forward or Istio VirtualService
+#   - Istio sidecar injection disabled on this namespace (monitoring workload, not a mesh service)
+#   - GPU cost tracking enabled — critical for QuanvNN workloads on g4dn.xlarge nodes
+
+opencost:
+  # ── Cloud provider ──────────────────────────────────────────────────────────
+  # AWS pricing API is queried to resolve on-demand rates per instance type.
+  # Spot pricing is approximated as 70% of on-demand (OpenCost default heuristic).
+  cloudProviderApiKey: ""  # Not required for AWS public pricing API
+  exporter:
+    cloudProviderApiKey: ""
+    defaultClusterId: "k8s-platform"
+
+    # AWS cloud integration — enables instance-type-aware pricing
+    aws:
+      # Region used for AWS pricing API lookups
+      region: eu-west-3
+
+    # Prometheus scrape endpoint
+    # Must match the service name of the kube-prometheus-stack prometheus instance
+    prometheus:
+      # Internal cluster DNS — prometheus-operated service from kube-prometheus-stack
+      internal:
+        enabled: true
+        # finops is the business domain namespace — matches destination in the ApplicationSet
+        namespaceName: monitoring
+        port: 9090
+        serviceName: prometheus-operated
+
+    # Resource requests/limits — OpenCost is lightweight
+    resources:
+      requests:
+        cpu: 10m
+        memory: 55Mi
+      limits:
+        cpu: 999m
+        memory: 1Gi
+
+  # ── UI (OpenCost frontend) ───────────────────────────────────────────────────
+  ui:
+    enabled: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 55Mi
+      limits:
+        cpu: 999m
+        memory: 1Gi
+
+  # ── Metrics ─────────────────────────────────────────────────────────────────
+  # Expose /metrics on port 9003 for Prometheus scraping via ServiceMonitor
+  metrics:
+    serviceMonitor:
+      # ServiceMonitor is managed separately in kubernetes/manifests/monitoring/servicemonitors/
+      # to follow the platform pattern — we disable the chart-generated one
+      enabled: false
+
+  # ── Pod annotations ─────────────────────────────────────────────────────────
+  # Disable Istio sidecar injection — opencost namespace has injection disabled
+  podAnnotations: {}
+
+  # ── RBAC ────────────────────────────────────────────────────────────────────
+  # OpenCost requires read access to nodes, pods, namespaces, and persistent volumes
+  # to calculate cost allocations. ClusterRole is created by the chart.
+  rbac:
+    enabled: true
+
+  # ── Service account ─────────────────────────────────────────────────────────
+  serviceAccount:
+    create: true
+    name: opencost
+    # IRSA annotation added here when ESO/AWS integration requires it.
+    # For local Kind clusters this is a no-op.
+    annotations: {}

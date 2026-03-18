@@ -1,0 +1,56 @@
+# OpenCost — CNCF open source Kubernetes cost monitoring
+# Requires: Prometheus (wave 4), namespaces (wave -3)
+# Wave 7 — after ServiceMonitors (wave 6) to avoid CRD race on ServiceMonitor creation
+#
+# OpenCost scrapes Prometheus for resource usage and exposes cost metrics
+# per namespace, deployment, pod and container. GPU node costs are tracked
+# via the AWS pricing integration (cloud provider: aws, region: eu-west-3).
+#
+# UI available at http://localhost:9090 (kubectl port-forward) or via Ingress.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: opencost
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+  template:
+    metadata:
+      name: 'opencost-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "7"
+    spec:
+      project: platform
+      sources:
+        # OpenCost Helm chart — official CNCF chart repository
+        - repoURL: https://opencost.github.io/opencost-helm-chart
+          chart: opencost
+          targetRevision: 1.42.0
+          helm:
+            releaseName: opencost
+            valueFiles:
+              - $values/kubernetes/helm/monitoring/opencost-values.yaml
+        # Values reference — pulled from the GitOps repo
+        - repoURL: https://github.com/PodYourLife/k8s-platform.git
+          targetRevision: '{{.targetRevision}}'
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: opencost
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
