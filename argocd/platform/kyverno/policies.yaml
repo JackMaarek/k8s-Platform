@@ -13,7 +13,7 @@ spec:
   project: platform
   source:
     repoURL: https://github.com/PodYourLife/k8s-platform.git
-    targetRevision: __TARGET_REVISION__
+    targetRevision: dev
     path: kubernetes/policies
   destination:
     server: https://kubernetes.default.svc
