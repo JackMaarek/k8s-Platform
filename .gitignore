@@ -42,19 +42,5 @@ istio-1*
 # Custom
 *.zip
 
-
-# argocd — fixes istio, kyverno, monitoring restructuré
-cp ~/Downloads/files/gateway.yaml          argocd/platform/istio/gateway.yaml
-cp ~/Downloads/files/kyverno.yaml          argocd/platform/kyverno/kyverno.yaml
-cp ~/Downloads/files/prometheus.yaml       argocd/platform/monitoring/prometheus.yaml
-cp ~/Downloads/files/datasources.yaml      argocd/platform/monitoring/datasources.yaml
-
-# helm values — scission SRP collecte / visualisation
-cp ~/Downloads/files/prometheus-values.yaml  kubernetes/helm/monitoring/prometheus-values.yaml
-cp ~/Downloads/files/grafana-values.yaml     kubernetes/helm/monitoring/grafana-values.yaml
-
-# datasources — une par fichier, remplacement de l'ancien fichier unique
-rm kubernetes/manifests/monitoring/datasources/datasources.yaml
-cp ~/Downloads/files/datasource-prometheus.yaml    kubernetes/manifests/monitoring/datasources/
-cp ~/Downloads/files/datasource-loki.yaml          kubernetes/manifests/monitoring/datasources/
-cp ~/Downloads/files/datasource-alertmanager.yaml  kubernetes/manifests/monitoring/datasources/
+#Claude
+.CLAUDE.md

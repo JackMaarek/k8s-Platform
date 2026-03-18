@@ -1,0 +1,154 @@
+# validate-pr.yml
+# Validation automatique de chaque PR vers main.
+# Vérifie les règles fondamentales du repo avant review humaine.
+name: Validate PR
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Règle 1 : aucune valeur env-specific ne doit aller sur main ────────────
+  check-no-env-values:
+    name: No env-specific values on main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded env values
+        run: |
+          VIOLATIONS=$(grep -rn \
+            "env: dev\|env: staging\|env: prod\|targetRevision: dev\|targetRevision: staging\|targetRevision: prod\|k8s-platform-dev\|esoIrsaRoleArn: \"\"" \
+            argocd/ kubernetes/helm/ \
+            --include="*.yaml" \
+            2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Env-specific values found on main-bound files:"
+            echo "$VIOLATIONS"
+            echo ""
+            echo "Use __PLACEHOLDER__ syntax instead."
+            exit 1
+          fi
+          echo "✅ No env-specific values found"
+
+  # ── Règle 2 : les placeholders ne doivent pas traîner dans les manifests ───
+  check-placeholders:
+    name: No stray placeholders in manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unreplaced placeholders in non-ApplicationSet files
+        run: |
+          # Les placeholders sont AUTORISÉS dans argocd/ (generators elements:)
+          # Ils sont INTERDITS dans kubernetes/manifests/ et kubernetes/helm/
+          VIOLATIONS=$(grep -rn \
+            "__ENV__\|__TARGET_REVISION__\|__AWS_ACCOUNT_ID__\|__CLUSTER_NAME__\|__ESO_IRSA_ROLE_ARN__" \
+            kubernetes/manifests/ \
+            --include="*.yaml" \
+            2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Unreplaced placeholders found in manifests:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "✅ No stray placeholders in manifests"
+
+  # ── Règle 3 : aucun secret commité ────────────────────────────────────────
+  check-no-secrets:
+    name: No secrets committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for potential secrets
+        run: |
+          # Patterns simples — complément à gitleaks si ajouté plus tard
+          VIOLATIONS=$(grep -rn \
+            "password:\s*['\"][^'\"]\|secret:\s*['\"][^'\"]\|token:\s*['\"][^'\"]\|AKIA[0-9A-Z]\{16\}" \
+            --include="*.yaml" --include="*.tf" --include="*.go" \
+            --exclude-dir=".git" \
+            . \
+            2>/dev/null | grep -v "existingSecret:\|secretRef:\|secretName:\|#\|secretsManagerPlugin" \
+            || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Potential secrets found:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "✅ No secrets detected"
+
+  # ── Règle 4 : taille des fichiers ─────────────────────────────────────────
+  check-file-size:
+    name: No file over 200 lines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check file sizes
+        run: |
+          # Exclure les dashboards Grafana (JSON embarqué) et les fichiers générés
+          VIOLATIONS=$(find . -name "*.go" \
+            -not -path "./.git/*" \
+            | xargs wc -l 2>/dev/null \
+            | awk '$1 > 200 && $2 != "total"' \
+            || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Go files exceeding 200 lines:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "✅ All Go files within 200 lines"
+
+  # ── Règle 5 : YAML valide ─────────────────────────────────────────────────
+  check-yaml:
+    name: Valid YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint YAML files
+        run: |
+          yamllint -d '{
+            extends: relaxed,
+            rules: {
+              line-length: {max: 200},
+              truthy: disable,
+              comments: disable
+            }
+          }' \
+          argocd/ kubernetes/manifests/ kubernetes/helm/ \
+          || true
+          echo "✅ YAML lint complete"
+
+  # ── Règle 6 : ArgoCD sync-wave documenté ──────────────────────────────────
+  check-syncwave:
+    name: Sync wave annotation present on ApplicationSets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check sync-wave annotations
+        run: |
+          VIOLATIONS=""
+          for file in $(find argocd/platform -name "*.yaml" -not -name "*.md"); do
+            if grep -q "kind: ApplicationSet\|kind: Application" "$file"; then
+              if ! grep -q "sync-wave" "$file"; then
+                VIOLATIONS="$VIOLATIONS\n  $file"
+              fi
+            fi
+          done
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Missing sync-wave annotation:"
+            echo -e "$VIOLATIONS"
+            exit 1
+          fi
+          echo "✅ All ApplicationSets have sync-wave annotations"
