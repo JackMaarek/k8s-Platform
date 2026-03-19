@@ -1,0 +1,254 @@
+# values.yaml
+# Default values for the ml-batch-job Helm chart.
+#
+# All defaults are safe no-ops — nothing is deployed without explicit overrides.
+# Override only what differs in kubernetes/helm/values/<app>-<env>.yaml.
+#
+# Sections:
+#   1. Naming
+#   2. Namespace
+#   3. Job run control
+#   4. Images
+#   5. Image pull secret
+#   6. ServiceAccount + IRSA
+#   7. Storage (PVCs)
+#   8. ConfigMap (env vars)
+#   9. GPU job
+#  10. CPU job
+#  11. Metrics sidecar + observability
+#  12. Pod security
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. NAMING
+# ─────────────────────────────────────────────────────────────────────────────
+# nameOverride    : replaces the chart name in generated resource names.
+# fullnameOverride: replaces the full <release>-<chart> name entirely.
+# Leave both empty to use Helm defaults.
+nameOverride: ""
+fullnameOverride: ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. NAMESPACE
+# ─────────────────────────────────────────────────────────────────────────────
+# Kubernetes namespace where all workload resources are deployed.
+# Must be unique per project — platform-bot enforces this at app add time.
+# The namespace is created by this chart (namespace.yaml template).
+namespace:
+  name: "ml-workload"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. JOB RUN CONTROL
+# ─────────────────────────────────────────────────────────────────────────────
+# runId is appended to each Job name to allow sequential runs without manually
+# deleting Completed jobs. Kubernetes treats a new name as a new resource.
+#
+# Recommended format: semantic (v1, v2) or date-based (20240101).
+# Increment on every new training run trigger.
+job:
+  runId: "v1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. IMAGES
+# ─────────────────────────────────────────────────────────────────────────────
+# gpu : used exclusively by the GPU extraction job (step 1).
+#        Ignored when gpu.enabled is false.
+# cpu : used by the CPU training job (steps 2-N) and the metrics sidecar
+#        when metrics.image is not explicitly overridden.
+image:
+  gpu:
+    repository: ""
+    tag: "gpu-latest"
+    pullPolicy: Always
+  cpu:
+    repository: ""
+    tag: "cpu-latest"
+    pullPolicy: Always
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. IMAGE PULL SECRET
+# ─────────────────────────────────────────────────────────────────────────────
+# Creates an ExternalSecret that syncs the GHCR pull token from AWS Secrets
+# Manager into a native Kubernetes Secret. ESO must be installed on the cluster.
+#
+# awsSecretPath: path in AWS Secrets Manager, e.g. "platform/ghcr-pull-token"
+imagePullSecret:
+  enabled: true
+  secretName: "ghcr-pull-secret"
+  awsSecretPath: ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. SERVICE ACCOUNT + IRSA
+# ─────────────────────────────────────────────────────────────────────────────
+# A dedicated ServiceAccount is always created for isolation.
+# Set irsaRoleArn to enable IRSA — grants the pod AWS API access (e.g. S3)
+# without static credentials. Leave empty to disable AWS API access.
+serviceAccount:
+  # Explicit name override. Leave empty to use <fullname>-sa (recommended).
+  name: ""
+  # IAM Role ARN annotated on the ServiceAccount for IRSA.
+  # Format: arn:aws:iam::<account-id>:role/<role-name>
+  irsaRoleArn: ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. STORAGE (PVCs)
+# ─────────────────────────────────────────────────────────────────────────────
+# Each entry creates one PersistentVolumeClaim in the workload namespace.
+# PVCs persist across Job runs — data survives pod termination.
+#
+# Fields:
+#   name       : PVC name suffix. Full name: <fullname>-<name>
+#   storage    : requested capacity (Gi)
+#   accessMode : ReadWriteOnce for single-node jobs (standard)
+#                ReadWriteMany for multi-node (requires EFS or similar)
+persistentVolumes:
+  - name: data
+    storage: "10Gi"
+    accessMode: ReadWriteOnce
+  - name: checkpoints
+    storage: "5Gi"
+    accessMode: ReadWriteOnce
+  - name: results
+    storage: "5Gi"
+    accessMode: ReadWriteOnce
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. CONFIGMAP (ENV VARS)
+# ─────────────────────────────────────────────────────────────────────────────
+# Key-value pairs injected as environment variables into all job containers.
+# Mounted from a ConfigMap — changes require a new Job run (new runId).
+#
+# Do NOT put secrets here. Use ExternalSecret for sensitive values.
+#
+# Example:
+#   config:
+#     DATASET_DIR: "/data"
+#     OUTPUT_DIR: "/results"
+config: {}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. GPU JOB (STEP 1 — OPTIONAL)
+# ─────────────────────────────────────────────────────────────────────────────
+# Enables a GPU-accelerated Job that runs before the CPU job.
+# Requires a GPU nodegroup with the nvidia.com/gpu taint in the cluster.
+# The GPU nodegroup scales to zero when idle — Cluster Autoscaler provisions
+# a node on Job creation and releases it after completion.
+gpu:
+  enabled: false
+
+  # CLI arguments passed to the GPU container entrypoint.
+  args: []
+
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      nvidia.com/gpu: "1"
+      cpu: "2"
+      memory: "8Gi"
+
+  # Targets the GPU nodegroup — label set in terraform.tfvars node_groups.gpu.labels
+  nodeSelector:
+    node-group: gpu
+
+  # Must match the taint defined on the GPU nodegroup in terraform.tfvars.
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+
+  # backoffLimit 0 — fail fast, do not retry on GPU OOM or CUDA errors.
+  backoffLimit: 0
+  # Hard deadline in seconds. Job is killed if it exceeds this duration.
+  activeDeadlineSeconds: 3600
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. CPU JOB (STEPS 2-N)
+# ─────────────────────────────────────────────────────────────────────────────
+# Always enabled. Runs the main training/analysis workload on CPU nodes.
+# The metrics sidecar (section 11) is injected into this pod when enabled.
+cpu:
+  # CLI arguments passed to the CPU container entrypoint.
+  args: []
+
+  resources:
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+
+  # Targets standard compute nodes.
+  nodeSelector:
+    node-group: standard
+
+  tolerations: []
+
+  backoffLimit: 0
+  # 24h hard deadline — long-running training jobs may need adjustment.
+  activeDeadlineSeconds: 86400
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 11. METRICS SIDECAR + OBSERVABILITY
+# ─────────────────────────────────────────────────────────────────────────────
+# Injects a Prometheus metrics sidecar into the CPU job pod.
+# The sidecar exposes training metrics on /metrics at metricsPort.
+#
+# serviceMonitor : creates a Prometheus ServiceMonitor for scraping.
+# grafanaDashboard: creates a ConfigMap hot-loaded by the Grafana sidecar.
+metrics:
+  enabled: false
+
+  # Sidecar image. Defaults to cpu image when repository is empty.
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Port exposed by the sidecar /metrics endpoint.
+  metricsPort: 8000
+
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+
+  serviceMonitor:
+    enabled: false
+    # Prometheus scrape interval for this workload.
+    scrapeInterval: "30s"
+
+  grafanaDashboard:
+    enabled: false
+    # Grafana UI folder where the dashboard appears.
+    folder: "ML Workloads"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 12. POD SECURITY
+# ─────────────────────────────────────────────────────────────────────────────
+# Follows Kubernetes Pod Security Standards (PSS) restricted profile.
+# Applied to all job pods in this chart.
+#
+# readOnlyRootFilesystem is false — ML jobs write checkpoints to mounted PVCs
+# and need a writable filesystem for temporary files (e.g. pip cache, torch).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000

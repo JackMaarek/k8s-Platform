@@ -1,0 +1,41 @@
+# Chart.yaml
+# Helm chart descriptor for the ml-batch-job generic chart.
+#
+# This chart is the single reusable template for all ML batch workloads
+# on the PodYourLife platform. It covers:
+#   - Optional GPU extraction job (step 1)
+#   - CPU training job with optional Prometheus metrics sidecar (steps 2-N)
+#   - PersistentVolumeClaims for data, checkpoints, cache, results
+#   - ServiceAccount with optional IRSA annotation (AWS S3 access)
+#   - GHCR imagePullSecret via ExternalSecret (ESO)
+#   - ServiceMonitor and Grafana dashboard (enabled via values)
+#
+# A new ML project requires only:
+#   1. kubernetes/helm/values/<app>-<env>.yaml  — project-specific overrides
+#   2. argocd/applications/ml/<app>.yaml        — ArgoCD Application manifest
+#
+# Trigger model: manual commit-based.
+#   Increment job.runId in values to trigger a new run.
+#   Completed jobs persist until manually pruned or ArgoCD prune fires.
+#
+# Cost model: GPU nodes scale to zero when no Job is running.
+#   Cluster Autoscaler provisions the gpu nodegroup on demand,
+#   releases it after Job completion.
+apiVersion: v2
+name: ml-batch-job
+description: >
+  Generic Helm chart for ML batch pipeline workloads on the PodYourLife platform.
+  Supports optional GPU extraction step, CPU training step, Prometheus sidecar,
+  IRSA-based S3 access, and integrated observability.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ml
+  - batch
+  - job
+  - gpu
+  - training
+maintainers:
+  - name: platform-team
+    url: https://github.com/PodYourLife
