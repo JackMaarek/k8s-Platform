@@ -34,7 +34,7 @@ fullnameOverride: ""
 # Must be unique per project — platform-bot enforces this at app add time.
 # The namespace is created by this chart (namespace.yaml template).
 namespace:
-  name: "ml-workload"
+  name: "ml"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. JOB RUN CONTROL

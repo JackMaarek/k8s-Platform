@@ -1,0 +1,26 @@
+# ml-namespace.yaml
+# Namespace: ml
+# Domain: machine learning batch workloads
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+#
+# Shared namespace for all ML batch workloads on the platform.
+# Each workload is isolated by labels (app.kubernetes.io/instance: <project>)
+# and by its own ServiceAccount + RBAC.
+#
+# Evolution path: if per-project isolation is required (separate teams,
+# separate clients), create ml-<project> namespaces following this same
+# template and update namespace.name in the project values file.
+#
+# Istio injection enabled — pods get mTLS via Envoy sidecar.
+# Note: Jobs must handle Envoy graceful termination on exit.
+# See docs/istio-job-termination.md for the required pattern.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml
+  labels:
+    platform.podyourlife.io/domain: ml
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
