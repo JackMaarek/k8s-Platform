@@ -1,13 +1,13 @@
 # datasource-prometheus.yaml
-# Responsabilité : déclarer la datasource Prometheus dans Grafana.
+# Declares the Prometheus datasource in Grafana.
 #
-# Chargé automatiquement par le sidecar k8s-sidecar via le label grafana_datasource=1.
-# uid fixe "prometheus" — les dashboards référencent les datasources par uid.
-# isDefault: true — datasource sélectionnée par défaut dans les nouveaux panels.
+# Hot-loaded automatically by the k8s-sidecar via label grafana_datasource=1.
+# Fixed uid "prometheus" — dashboards reference datasources by uid, not name.
+# isDefault: true — selected by default in new panels.
 #
-# Note : grafana-values.yaml désactive la ConfigMap native du chart
-# (sidecar.datasources.defaultDatasourceEnabled: false) pour que cette
-# ConfigMap soit la seule source de vérité pour la datasource Prometheus.
+# Note: grafana-values.yaml disables the chart-native datasource ConfigMap
+# (sidecar.datasources.defaultDatasourceEnabled: false) so that this
+# ConfigMap is the single source of truth for the Prometheus datasource.
 apiVersion: v1
 kind: ConfigMap
 metadata:

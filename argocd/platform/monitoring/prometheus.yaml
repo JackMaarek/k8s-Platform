@@ -1,14 +1,14 @@
 # argocd/platform/monitoring/prometheus.yaml
-# Responsabilité : déployer la stack de collecte de métriques.
-# Installe : PrometheusOperator, Prometheus, Alertmanager, node-exporter, kube-state-metrics.
+# Deploys the metrics collection stack.
+# Installs: PrometheusOperator, Prometheus, Alertmanager, node-exporter, kube-state-metrics.
 #
-# Values splitées par responsabilité (SRP) :
-#   prometheus-values.yaml → collecte (Prometheus, Alertmanager, exporters, règles)
+# Values split by responsibility (SRP):
+#   prometheus-values.yaml → collection (Prometheus, Alertmanager, exporters, alert rules)
 #   grafana-values.yaml    → visualisation (Grafana subchart, sidecar, persistence)
 #
-# Wave 4 — après namespaces (wave -3) et Istio (waves 0-3).
-# Le namespace monitoring doit avoir istio-injection: disabled avant ce sync
-# (les Jobs admission webhook ne peuvent pas terminer avec un sidecar Istio).
+# Wave 4 — after namespaces (wave -3) and Istio (waves 0-3).
+# The monitoring namespace must have istio-injection: disabled before this sync —
+# admission webhook Jobs cannot terminate cleanly with an Istio sidecar running.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

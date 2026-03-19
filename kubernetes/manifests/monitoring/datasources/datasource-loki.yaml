@@ -1,8 +1,8 @@
 # datasource-loki.yaml
-# Responsabilité : déclarer la datasource Loki dans Grafana.
+# Declares the Loki datasource in Grafana.
 #
-# Chargé automatiquement par le sidecar k8s-sidecar via le label grafana_datasource=1.
-# Dépend de : loki ApplicationSet (wave 5) qui doit être Running avant la sync wave 7.
+# Hot-loaded automatically by the k8s-sidecar via label grafana_datasource=1.
+# Depends on: loki ApplicationSet (wave 5) must be Running before wave 7 syncs.
 apiVersion: v1
 kind: ConfigMap
 metadata:

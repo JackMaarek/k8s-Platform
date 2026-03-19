@@ -1,29 +1,29 @@
 # grafana-values.yaml
 # Chart: prometheus-community/kube-prometheus-stack (subchart grafana)
 #
-# Responsabilité : visualisation — configuration complète de Grafana.
-# Contient : Grafana, sidecar dashboards, persistence, resources.
-# Ne contient PAS : datasources → voir kubernetes/manifests/monitoring/datasources/
+# Scope: visualisation — full Grafana configuration.
+# Contains: Grafana, dashboard sidecar, persistence, resources.
+# Does NOT contain: datasources → see kubernetes/manifests/monitoring/datasources/
 #
 # ── Datasources ───────────────────────────────────────────────────────────────
-# Les datasources sont déclarées exclusivement dans :
+# Datasources are declared exclusively in:
 #   kubernetes/manifests/monitoring/datasources/
-#   Un fichier par datasource, chacun est une ConfigMap avec label grafana_datasource=1.
-#   Le sidecar k8s-sidecar les hot-load sans redémarrage de Grafana.
+#   One file per datasource, each is a ConfigMap with label grafana_datasource=1.
+#   The k8s-sidecar hot-loads them without restarting Grafana.
 #
-# La ConfigMap native du chart (prometheus-kube-prometheus-grafana-datasource)
-# est désactivée via defaultDatasourceEnabled: false pour éviter tout doublon.
+# The chart-generated native datasource ConfigMap is disabled via
+# defaultDatasourceEnabled: false to avoid duplicates.
 #
 # ── Dashboards ────────────────────────────────────────────────────────────────
-# Les dashboards sont déclarés dans :
+# Dashboards are declared in:
 #   kubernetes/manifests/monitoring/dashboards/
-#   Un fichier par groupe de dashboards, ConfigMap avec label grafana_dashboard=1.
-#   Le sidecar les hot-load et les organise en dossiers via l'annotation
-#   k8s-sidecar-target-directory.
+#   One file per dashboard group, ConfigMap with label grafana_dashboard=1.
+#   The sidecar hot-loads them and organises them into folders via the
+#   k8s-sidecar-target-directory annotation.
 #
-# ── Credentials admin ─────────────────────────────────────────────────────────
-# Injectés depuis le Secret grafana-admin-credentials créé au bootstrap.
-# Ne jamais stocker de credentials dans ce fichier.
+# ── Admin credentials ─────────────────────────────────────────────────────────
+# Injected from the grafana-admin-credentials Secret created at bootstrap.
+# Never store credentials in this file.
 
 grafana:
   defaultDashboardsEnabled: true
@@ -33,7 +33,7 @@ grafana:
     existingSecret: grafana-admin-credentials
     userKey: admin-user
     passwordKey: admin-password
-  # initChownData nécessite root — désactivé pour respecter la PodSecurity restricted.
+  # initChownData requires root — disabled to comply with PodSecurity restricted.
   initChownData:
     enabled: false
   persistence:
@@ -51,8 +51,8 @@ grafana:
       enabled: true
       label: grafana_datasource
       labelValue: "1"
-      # Désactive la ConfigMap de datasource générée par le chart.
-      # Toutes les datasources sont déclarées dans manifests/monitoring/datasources/.
+      # Disable the chart-generated datasource ConfigMap.
+      # All datasources are declared in manifests/monitoring/datasources/ — single source of truth.
       defaultDatasourceEnabled: false
     dashboards:
       enabled: true

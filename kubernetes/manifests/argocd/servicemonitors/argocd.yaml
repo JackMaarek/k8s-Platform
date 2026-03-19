@@ -1,10 +1,10 @@
-# ServiceMonitors ArgoCD
-# Corrige les sélecteurs — les labels réels sur les services ArgoCD sont :
+# ServiceMonitors for ArgoCD components.
+# Fixes selectors — the actual labels on ArgoCD services are:
 #   app.kubernetes.io/name: argocd-application-controller
 #   app.kubernetes.io/name: argocd-server
 #   app.kubernetes.io/name: argocd-repo-server
 #
-# Les anciens sélecteurs (argocd-metrics, argocd-server-metrics) n'existent pas.
+# The old selectors (argocd-metrics, argocd-server-metrics) do not exist.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

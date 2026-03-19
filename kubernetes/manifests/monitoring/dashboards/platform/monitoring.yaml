@@ -1,7 +1,7 @@
 # ConfigMap — Monitoring Stack
-# Chargé automatiquement par le sidecar k8s-sidecar via grafana_dashboard=1.
-# Dossier Grafana : Platform
-# UID du dashboard : monitoring-stack
+# Loaded automatically by the k8s-sidecar via grafana_dashboard=1.
+# Grafana folder: Platform
+# Dashboard UID: argocd-detail
 apiVersion: v1
 kind: ConfigMap
 metadata:

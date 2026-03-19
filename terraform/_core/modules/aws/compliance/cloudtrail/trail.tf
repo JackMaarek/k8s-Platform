@@ -41,7 +41,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "audit_logs" {
     id     = "audit-log-retention"
     status = "Enabled"
 
-    # filter{} vide = s'applique à tous les objets (requis depuis AWS provider 4.x)
+    # empty filter{} = applies to all objects (required since AWS provider 4.x)
     filter {}
 
     transition {

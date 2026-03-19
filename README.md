@@ -24,14 +24,18 @@ platform.yaml              ← certified component versions + per-env state (man
       │                 └── prod/
       │
       ├── argocd/                        ← GitOps delivery
-      │     ├── projects/                ← AppProjects (platform, applications)
+      │     ├── projects/                ← AppProjects (platform, applications, ml)
       │     ├── platform/                ← ApplicationSets for infra (Istio, monitoring, ESO…)
-      │     └── applications/            ← product app ArgoCD Applications
+      │     └── applications/            ← ArgoCD Applications
+      │           └── ml/               ← ML batch pipeline Applications
       │
       └── kubernetes/
+            ├── namespaces/              ← platform-managed namespaces (wave -3)
             ├── helm/
-            │     ├── sample-app/        ← shared Helm chart for all product apps
+            │     ├── sample-app/        ← shared Helm chart for product apps (Deployment-based)
+            │     ├── ml-batch-job/      ← shared Helm chart for ML batch pipelines (Job-based)
             │     └── values/            ← per-app Helm value overrides
+            ├── manifests/               ← static platform manifests (dashboards, servicemonitors)
             └── secrets/                 ← ExternalSecret CRDs (sourced from AWS Secrets Manager)
 ```
 
@@ -105,10 +109,7 @@ platform-bot local up --env dev
 All secrets live in **AWS Secrets Manager** under `{cluster-name}/{namespace}/{app}`. ESO syncs them into native Kubernetes Secrets. No secrets are stored in this repository.
 
 ```bash
-# Add a secret (via platform-bot)
-platform-bot secret add --name my-app/DB_PASSWORD --value <value>
-
-# Manually
+# Manually add a secret
 aws secretsmanager create-secret \
   --name dev-k8s/development/my-app \
   --secret-string '{"DB_PASSWORD":"xxx"}'
@@ -118,13 +119,49 @@ See `docs/examples/external-secret.yaml` for the ExternalSecret CRD pattern.
 
 ---
 
-## Deploying an application
+## Deploying a product application
 
 1. Add a Helm values file: `kubernetes/helm/values/<app>-dev.yaml`
 2. Add an ArgoCD Application: `argocd/applications/<app>.yaml` (copy from `docs/examples/argocd-application.yaml`)
 3. Commit and push — ArgoCD picks it up automatically
 
 See `docs/examples/` for annotated templates.
+
+---
+
+## Deploying an ML batch pipeline
+
+1. Add a values file: `kubernetes/helm/values/<app>-dev.yaml` (copy from `kubernetes/helm/values/quanvnn-dev.yaml`)
+2. Add an ArgoCD Application: `argocd/applications/ml/<app>.yaml` (copy from `argocd/applications/ml/quanvnn.yaml`)
+3. Set `job.runId` in the values file to trigger the first run
+4. Commit and push — ArgoCD syncs the Jobs automatically
+
+To trigger a new run: increment `job.runId` in the values file and commit.
+Both Jobs (GPU extract + CPU train) are recreated under the new name.
+Previous Completed jobs are retained for log inspection and can be pruned manually.
+
+The GPU node group starts at `desired_size = 0` — zero compute cost when no Job is running.
+See `kubernetes/helm/ml-batch-job/values.yaml` for all available configuration options.
+
+---
+
+## Namespaces
+
+All namespaces are platform-managed — declared in `kubernetes/namespaces/` and deployed by the
+`namespaces` ApplicationSet (wave -3). No namespace is ever created manually or by an application chart.
+
+| Namespace | Domain | Istio injection | PSS |
+|---|---|---|---|
+| `argocd` | GitOps | enabled | restricted |
+| `istio-system` | Service mesh | disabled | privileged |
+| `monitoring` | Observability | disabled | privileged |
+| `external-secrets` | Secret sync | enabled | restricted |
+| `kyverno` | Policy | enabled | restricted |
+| `finops` | Cost monitoring | disabled | restricted |
+| `ml` | ML batch workloads | enabled (Jobs opt-out via annotation) | restricted |
+| `development` | Product apps dev | enabled | restricted |
+| `staging` | Product apps staging | enabled | restricted |
+| `production` | Product apps prod | enabled | restricted |
 
 ---
 
@@ -180,9 +217,10 @@ GPU nodes (g4dn.xlarge) start at `desired_size = 0` — zero cost until a GPU wo
 | Cluster foundation (VPC, EKS, IRSA) | `terraform/_core/shared/{env}/README.md` |
 | IAM Identity Center (org-level) | `terraform/domains/organization/` |
 | Node groups | `terraform/domains/platform/{env}/README.md` |
-| Reusable modules | `terraform/_core/modules/README.md` |
+| Reusable Terraform modules | `terraform/_core/modules/README.md` |
 | Adding a product app | `docs/examples/argocd-application.yaml` |
+| Adding an ML pipeline | `kubernetes/helm/values/quanvnn-dev.yaml` |
+| ML chart configuration | `kubernetes/helm/ml-batch-job/values.yaml` |
 | Secret management | `docs/examples/external-secret.yaml` |
-| GPU workloads | `docs/examples/gpu-workload.yaml` |
 | Cost monitoring (OpenCost) | `argocd/platform/opencost/opencost.yaml` |
 | First-time Terraform bootstrap | `docs/examples/terraform-new-env.md` |

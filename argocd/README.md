@@ -1,356 +1,172 @@
-# Argo CD - GitOps Continuous Delivery
+# argocd
 
-## Overview
-Argo CD provides declarative, GitOps continuous delivery for Kubernetes applications.
+GitOps delivery layer for k8s-platform. ArgoCD watches this repository and reconciles
+the cluster state with what is declared in Git.
 
-## Architecture
-- **Repository**: Git repo as single source of truth
-- **Application**: Defines what to deploy and where
-- **Sync**: Automatic or manual deployment from Git
-- **Health**: Application health status tracking
+---
 
-## Installation
+## Structure
 
-### Install Argo CD
-```bash
-# Create namespace
-kubectl create namespace argocd
-
-# Install Argo CD
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Wait for pods to be ready
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+```
+argocd/
+  projects/
+    platform.yaml        ← AppProject: infra (Istio, monitoring, ESO, Kyverno, namespaces)
+    applications.yaml    ← AppProject: product apps (development, staging, production)
+    ml.yaml              ← AppProject: ML batch workloads (Jobs, PVCs, IRSA)
+  platform/
+    namespaces.yaml      ← wave -3 — all cluster namespaces
+    external-secrets/    ← wave -2 — ESO operator + ClusterSecretStore
+    istio/               ← waves -1 to 1 — CNI, istiod, gateway
+    kyverno/             ← wave 2 — admission policies
+    monitoring/          ← waves 4-8 — prometheus, loki, promtail, grafana, opencost
+    argocd/              ← wave 6 — ArgoCD self-monitoring ServiceMonitors
+    development/         ← wave 6 — development namespace ServiceMonitors
+  applications/
+    ml/
+      quanvnn.yaml       ← QuanvNN ML batch pipeline (dev)
 ```
 
-### Access Argo CD
+---
 
-#### CLI Access
+## AppProjects
+
+Three AppProjects define RBAC boundaries and allowed resource types:
+
+| Project | Scope | Destinations | Teams |
+|---|---|---|---|
+| `platform` | Cluster infra — Istio, monitoring, ESO, namespaces | All system namespaces | platform-team |
+| `applications` | Product apps — Deployments, Services, HPA | development, staging, production | dev-team, platform-team |
+| `ml` | ML batch workloads — Jobs, PVCs, IRSA | ml | ml-team, platform-team |
+
+---
+
+## Sync waves
+
+Resources are applied in strict wave order. Each wave waits for the previous to be healthy.
+
+| Wave | ApplicationSet | Reason |
+|------|---------------|--------|
+| -3 | namespaces | Must exist before any workload |
+| -2 | external-secrets | ESO must be ready before secrets are synced |
+| -1 | istio-base, istio-cni | CRDs and CNI before istiod |
+| 0 | istiod | Control plane before gateway |
+| 1 | istio-gateway | Gateway after istiod |
+| 2 | kyverno | Admission policies before workloads |
+| 3 | kyverno policies | Policies after Kyverno CRDs |
+| 4 | prometheus | Metrics stack — CRDs required by ServiceMonitors |
+| 5 | loki, promtail | Log stack after prometheus |
+| 6 | servicemonitors | ServiceMonitor CRDs must exist (wave 4) |
+| 7 | grafana datasources, opencost | After prometheus and Grafana |
+| 8 | grafana dashboards | After datasources |
+
+---
+
+## Placeholder syntax
+
+Two placeholder syntaxes coexist in this repository — do not conflate them:
+
+| Syntax | Replaced by | When |
+|---|---|---|
+| `__SNAKE_CASE__` | platform-bot | At `init` time — once per environment branch |
+| `{{.camelCase}}` | ArgoCD goTemplate | At runtime — by ApplicationSet generators |
+
+---
+
+## Adding a product application
+
 ```bash
-# Install Argo CD CLI
-brew install argocd  # macOS
-# Or download from https://github.com/argoproj/argo-cd/releases
+# 1. Create values file
+cp kubernetes/helm/values/quanvnn-dev.yaml kubernetes/helm/values/<app>-dev.yaml
+# edit values
+
+# 2. Create ArgoCD Application
+cp docs/examples/argocd-application.yaml argocd/applications/<app>.yaml
+# edit name, namespace, values path
+
+# 3. Commit
+git add kubernetes/helm/values/<app>-dev.yaml argocd/applications/<app>.yaml
+git commit -m "feat(app): add <app> to dev environment"
+git push
+```
+
+ArgoCD detects the new Application manifest and syncs automatically.
+
+---
+
+## Adding an ML batch pipeline
+
+```bash
+# 1. Create values file
+cp kubernetes/helm/values/quanvnn-dev.yaml kubernetes/helm/values/<app>-dev.yaml
+# edit image, config, resources, runId
+
+# 2. Create ArgoCD Application
+cp argocd/applications/ml/quanvnn.yaml argocd/applications/ml/<app>.yaml
+# edit name, values path
+
+# 3. Commit
+git add kubernetes/helm/values/<app>-dev.yaml argocd/applications/ml/<app>.yaml
+git commit -m "feat(ml): add <app> ML pipeline to dev environment"
+git push
+```
+
+---
+
+## Triggering a new ML run
+
+Increment `job.runId` in the values file and commit. ArgoCD creates new Jobs under the new name.
+Previous Completed jobs are retained — prune manually when no longer needed.
+
+```bash
+# Edit kubernetes/helm/values/quanvnn-dev.yaml
+# job:
+#   runId: "v2"   ← increment
+
+git add kubernetes/helm/values/quanvnn-dev.yaml
+git commit -m "chore(ml): trigger quanvnn run v2"
+git push
+```
+
+---
+
+## Observability
+
+ArgoCD exposes Prometheus metrics scraped by the `argocd-servicemonitors` ApplicationSet (wave 6).
+The ArgoCD dashboard is available in Grafana under the `Platform` folder.
+
+```bash
+# Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# https://localhost:8080
 
 # Get admin password
-ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
-echo "Admin password: $ARGOCD_PASSWORD"
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
 
-# Port forward to access
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+# CLI login
+argocd login localhost:8080 --username admin --insecure
 
-# Login
-argocd login localhost:8080 --username admin --password $ARGOCD_PASSWORD --insecure
-```
-
-#### Web UI Access
-```bash
-# Port forward
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-# Access at https://localhost:8080
-# Username: admin
-# Password: (from command above)
-```
-
-### Change Admin Password
-```bash
-argocd account update-password
-```
-
-## Application Management
-
-### Deploy Sample Application
-```bash
-kubectl apply -f applications/sample-app.yaml
-```
-
-### Using CLI
-```bash
-# Create application
-argocd app create sample-app \
-  --repo https://github.com/your-org/k8s-platform.git \
-  --path kubernetes/helm/sample-app \
-  --dest-server https://kubernetes.default.svc \
-  --dest-namespace development \
-  --sync-policy automated \
-  --auto-prune \
-  --self-heal
-
-# List applications
-argocd app list
-
-# Get application details
-argocd app get sample-app
-
-# Sync application
-argocd app sync sample-app
-
-# View application logs
-argocd app logs sample-app
-```
-
-## GitOps Workflow
-
-### 1. Make Changes
-```bash
-# Edit Helm values or manifests
-vim kubernetes/helm/sample-app/values.yaml
-
-# Commit and push
-git add .
-git commit -m "Update replicas to 5"
-git push origin main
-```
-
-### 2. Automatic Sync
-Argo CD will:
-1. Detect changes in Git
-2. Compare with cluster state
-3. Automatically sync if auto-sync enabled
-4. Report health and sync status
-
-### 3. Monitor Status
-```bash
 # Watch sync status
-argocd app watch sample-app
-
-# View sync history
-argocd app history sample-app
+argocd app list
+argocd app get quanvnn-dev
 ```
 
-## Sync Policies
-
-### Automatic Sync
-```yaml
-syncPolicy:
-  automated:
-    prune: true      # Delete resources not in Git
-    selfHeal: true   # Force sync when drift detected
-```
-
-### Manual Sync
-```yaml
-syncPolicy:
-  syncOptions:
-    - CreateNamespace=true
-```
-
-### Sync Windows
-Restrict syncs to specific times:
-```yaml
-syncPolicy:
-  syncOptions:
-    - CreateNamespace=true
-  syncWindows:
-  - kind: allow
-    schedule: '0 9 * * 1-5'  # Mon-Fri, 9 AM
-    duration: 8h
-    applications:
-    - '*'
-```
-
-## Application Structure
-
-### Basic Application
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: sample-app
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/your-org/k8s-platform.git
-    targetRevision: HEAD
-    path: kubernetes/helm/sample-app
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: development
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-### Helm Application
-```yaml
-spec:
-  source:
-    repoURL: https://github.com/your-org/k8s-platform.git
-    targetRevision: HEAD
-    path: kubernetes/helm/sample-app
-    helm:
-      valueFiles:
-        - values.yaml
-      parameters:
-        - name: replicaCount
-          value: "5"
-```
-
-### Multiple Sources (App of Apps Pattern)
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: platform-apps
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/your-org/k8s-platform.git
-    targetRevision: HEAD
-    path: argocd/applications
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-## Projects
-
-Create projects to organize applications:
-```bash
-# Create project
-argocd proj create production \
-  --description "Production applications" \
-  --src https://github.com/your-org/k8s-platform.git \
-  --dest https://kubernetes.default.svc,production \
-  --allow-cluster-resource '*/*/*'
-
-# List projects
-argocd proj list
-
-# Add repository to project
-argocd proj add-source production https://github.com/your-org/k8s-platform.git
-```
-
-## RBAC and Security
-
-### Create Read-Only User
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-rbac-cm
-  namespace: argocd
-data:
-  policy.csv: |
-    p, role:readonly, applications, get, */*, allow
-    p, role:readonly, logs, get, */*, allow
-    g, readonly-user, role:readonly
-```
-
-### SSO Integration
-Argo CD supports:
-- OIDC (Okta, Google, etc.)
-- SAML
-- LDAP
-- GitHub/GitLab
-
-## Monitoring and Alerts
-
-### Prometheus Metrics
-Argo CD exposes metrics at:
-```
-http://argocd-metrics:8082/metrics
-```
-
-Key metrics:
-- `argocd_app_sync_total`: Sync count
-- `argocd_app_health_status`: Health status
-- `argocd_app_sync_status`: Sync status
-
-### Notifications
-Configure notifications for sync events:
-```bash
-# Install notifications controller
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-notifications/stable/manifests/install.yaml
-```
+---
 
 ## Troubleshooting
 
-### Application Out of Sync
 ```bash
-# View diff
-argocd app diff sample-app
+# Application out of sync
+argocd app diff <app-name>
+argocd app sync <app-name> --force
 
-# Force sync
-argocd app sync sample-app --force
+# View sync history
+argocd app history <app-name>
 
-# Refresh application
-argocd app get sample-app --refresh
-```
-
-### Connection Issues
-```bash
-# Check repo credentials
-argocd repo list
-
-# Add/update repository
-argocd repo add https://github.com/your-org/k8s-platform.git \
-  --username your-username \
-  --password your-token
-```
-
-### Performance Issues
-```bash
 # Check controller logs
-kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller
+kubectl logs -n argocd \
+  -l app.kubernetes.io/name=argocd-application-controller --tail=100
 
-# Scale up controller
-kubectl scale deployment argocd-application-controller -n argocd --replicas=2
+# Force refresh (re-read Git)
+argocd app get <app-name> --refresh
 ```
-
-### Sync Failures
-```bash
-# View application events
-kubectl describe application sample-app -n argocd
-
-# Check sync operation
-argocd app get sample-app -o yaml
-
-# View detailed logs
-kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller --tail=100
-```
-
-## Best Practices
-
-1. **Use App of Apps Pattern** for managing multiple applications
-2. **Enable Auto-Prune** to remove orphaned resources
-3. **Enable Self-Heal** to maintain desired state
-4. **Use Projects** to organize applications by team/environment
-5. **Implement RBAC** for least privilege access
-6. **Tag Git Commits** for production releases
-7. **Use Sync Windows** for controlled deployment times
-8. **Monitor Health Status** and set up alerts
-9. **Regular Backups** of Argo CD configuration
-10. **Pin Application Versions** in production
-
-## Disaster Recovery
-
-### Backup Argo CD
-```bash
-# Export all applications
-argocd app list -o yaml > argocd-apps-backup.yaml
-
-# Backup namespace
-kubectl get all,cm,secret -n argocd -o yaml > argocd-backup.yaml
-```
-
-### Restore Argo CD
-```bash
-# Restore namespace
-kubectl apply -f argocd-backup.yaml
-
-# Restore applications
-kubectl apply -f argocd-apps-backup.yaml
-```
-
-## References
-- [Argo CD Documentation](https://argo-cd.readthedocs.io/)
-- [Best Practices](https://argo-cd.readthedocs.io/en/stable/user-guide/best_practices/)
-- [GitOps Principles](https://www.gitops.tech/)
