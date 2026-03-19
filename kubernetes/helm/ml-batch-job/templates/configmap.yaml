@@ -21,4 +21,6 @@ metadata:
 data:
   {{- if .Values.config }}
   {{- toYaml .Values.config | nindent 2 }}
+  {{- else }}
+  {}
   {{- end }}
