@@ -50,11 +50,31 @@ spec:
     - namespace: finops
       server: https://kubernetes.default.svc
 
-  # Wildcard — platform manages cluster-wide resources: Namespaces, CRDs,
-  # ClusterRoles, ClusterPolicies (Kyverno), WebhookConfigurations (Istio), etc.
-  # Restricting to an explicit list has caused sync failures in the past.
+  # Explicit least-privilege list — only the cluster-scoped resource types
+  # actually required by platform components. Wildcard would allow any
+  # Application in this project to create arbitrary cluster-scoped resources.
   clusterResourceWhitelist:
-    - group: "*"
+    - group: ""
+      kind: Namespace
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: networking.istio.io
+      kind: "*"
+    - group: security.istio.io
+      kind: "*"
+    - group: telemetry.istio.io
+      kind: "*"
+    - group: kyverno.io
+      kind: "*"
+    - group: wgpolicyk8s.io
       kind: "*"
 
   namespaceResourceWhitelist:
