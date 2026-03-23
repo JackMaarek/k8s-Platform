@@ -1,6 +1,6 @@
 # AppProject: platform
 # Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
-# Allowed destinations: istio-system, monitoring, argocd, kube-system
+# Allowed destinations: istio-system, istio-ingress, monitoring, argocd, kube-system
 # Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
 # Only platform-admin role can sync — dev-team has read-only access
 apiVersion: argoproj.io/v1alpha1
@@ -27,6 +27,8 @@ spec:
   destinations:
     - namespace: istio-system
       server: https://kubernetes.default.svc
+    - namespace: istio-ingress
+      server: https://kubernetes.default.svc
     - namespace: monitoring
       server: https://kubernetes.default.svc
     - namespace: argocd
@@ -48,7 +50,9 @@ spec:
     - namespace: finops
       server: https://kubernetes.default.svc
 
-  # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
+  # Explicit least-privilege list — only the cluster-scoped resource types
+  # actually required by platform components. Wildcard would allow any
+  # Application in this project to create arbitrary cluster-scoped resources.
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
