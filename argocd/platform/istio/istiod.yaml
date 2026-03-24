@@ -60,7 +60,6 @@ spec:
               - prometheus
           # Merge Envoy stats into the app pod's /metrics endpoint
           enablePrometheusMerge: true
-        
         # Resolve 'auto' proxy image for gateway injection on Kind.
         # Without global.hub/tag, the gateway template cannot resolve
         # the proxy image at runtime when no registry mirror is configured.
