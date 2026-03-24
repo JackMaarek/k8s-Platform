@@ -33,7 +33,7 @@ prometheus:
     # __CLUSTER_NAME__ est remplacé par platform-bot à l'init.
     # Ce label est injecté sur toutes les métriques pour les vues multi-cluster Grafana.
     externalLabels:
-      cluster: k8s-platform-dev
+      cluster: __CLUSTER_NAME__
     # Découverte automatique des ServiceMonitors et PodMonitors dans tous les namespaces.
     # Chaque composant déclare son propre ServiceMonitor — pas de liste centrale ici.
     namespaceSelector:

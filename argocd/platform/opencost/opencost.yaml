@@ -18,10 +18,10 @@ spec:
   generators:
     - list:
         elements:
-          - env: dev
-            targetRevision: dev
-            awsRegion: eu-west-3
-            esoIrsaRoleArn: ""
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
   template:
     metadata:
       name: 'opencost-{{.env}}'
