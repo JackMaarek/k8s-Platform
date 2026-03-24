@@ -1,7 +1,12 @@
 # Installs the Istio control plane (istiod)
 # istiod manages sidecar injection, mTLS certificates, and traffic policy
-# Depends on: istio-base (CRDs) and istio-cni
-# Version: 1.26.0 — compatible with Kubernetes 1.29-1.32
+# Depends on: istio-base (CRDs) at wave -2
+#
+# Wave -1: istiod must be healthy before CNI (wave 0-1) and gateway (wave 2).
+# The MutatingAdmissionWebhook registered by istiod is required for
+# gateway pod injection (image: auto substitution).
+#
+# Version: 1.27.1 — compatible with Kubernetes 1.29-1.32
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -10,8 +15,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    # Deploys after base and CNI
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: platform
 
@@ -56,6 +60,13 @@ spec:
               - prometheus
           # Merge Envoy stats into the app pod's /metrics endpoint
           enablePrometheusMerge: true
+        
+        # Resolve 'auto' proxy image for gateway injection on Kind.
+        # Without global.hub/tag, the gateway template cannot resolve
+        # the proxy image at runtime when no registry mirror is configured.
+        global:
+          hub: docker.io/istio
+          tag: 1.27.1
 
         # Resolve 'auto' proxy image for gateway injection on Kind.
         # Without global.hub/tag, the gateway template cannot resolve

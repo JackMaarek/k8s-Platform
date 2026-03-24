@@ -11,24 +11,24 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
-            targetRevision: __TARGET_REVISION__
-            awsRegion: __AWS_REGION__
-            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+          - env: dev
+            targetRevision: dev
+            awsRegion: eu-west-3
+            esoIrsaRoleArn: ""
   template:
     metadata:
-      name: 'istio-security-{{.env}}'
+      name: 'istio-security-dev'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       annotations:
         # Security policies applied after the mesh is up
-        argocd.argoproj.io/sync-wave: "2"
+        argocd.argoproj.io/sync-wave: "3"
     spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: '{{.targetRevision}}'
+        targetRevision: 'dev'
         path: istio/security
       destination:
         server: https://kubernetes.default.svc

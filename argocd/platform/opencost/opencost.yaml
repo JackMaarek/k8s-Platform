@@ -18,10 +18,10 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
-            targetRevision: __TARGET_REVISION__
-            awsRegion: __AWS_REGION__
-            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+          - env: dev
+            targetRevision: dev
+            awsRegion: eu-west-3
+            esoIrsaRoleArn: ""
   template:
     metadata:
       name: 'opencost-{{.env}}'
@@ -29,7 +29,7 @@ spec:
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       annotations:
-        argocd.argoproj.io/sync-wave: "7"
+        argocd.argoproj.io/sync-wave: "14"
     spec:
       project: platform
       sources:
