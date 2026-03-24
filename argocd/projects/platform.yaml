@@ -1,7 +1,6 @@
 # AppProject: platform
-# Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
-# Allowed destinations: istio-system, istio-ingress, monitoring, argocd, kube-system
-# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
+# Scope: all infrastructure — Istio, monitoring, cert-manager, ESO, namespaces
+# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces, ClusterIssuers)
 # Only platform-admin role can sync — dev-team has read-only access
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -11,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "Platform infrastructure — Istio, monitoring, ESO, namespaces"
+  description: "Platform infrastructure — Istio, monitoring, cert-manager, ESO, namespaces"
 
   sourceRepos:
     - https://github.com/PodYourLife/k8s-platform.git
@@ -23,6 +22,7 @@ spec:
     - https://charts.external-secrets.io
     - https://kyverno.github.io/kyverno/
     - https://opencost.github.io/opencost-helm-chart
+    - https://charts.jetstack.io
 
   destinations:
     - namespace: istio-system
@@ -48,6 +48,8 @@ spec:
     - namespace: external-secrets
       server: https://kubernetes.default.svc
     - namespace: finops
+      server: https://kubernetes.default.svc
+    - namespace: cert-manager
       server: https://kubernetes.default.svc
 
   # Explicit least-privilege list — only the cluster-scoped resource types
@@ -76,6 +78,8 @@ spec:
       kind: "*"
     - group: wgpolicyk8s.io
       kind: "*"
+    - group: cert-manager.io
+      kind: ClusterIssuer
 
   namespaceResourceWhitelist:
     - group: "*"

@@ -1,0 +1,22 @@
+# Namespace: cert-manager
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+#
+# Dedicated namespace for the cert-manager operator.
+# cert-manager manages TLS certificate lifecycle — issuance, renewal,
+# revocation — for ingress endpoints exposed via Istio Gateway.
+#
+# Istio injection disabled — cert-manager is a platform operator that
+# runs webhook + controller + cainjector. These components don't serve
+# mesh traffic. The webhook needs to be reachable by the API server
+# before Istio is fully bootstrapped (cert-manager may be installed
+# before or after Istio depending on sync-wave ordering).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    platform.podyourlife.io/domain: tls
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
