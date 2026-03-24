@@ -1,5 +1,5 @@
 # AppProject: platform
-# Scope: all infrastructure — Istio, monitoring, cert-manager, ESO, namespaces
+# Scope: all infrastructure — Istio, monitoring, cert-manager, Vault, ESO, namespaces
 # Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces, ClusterIssuers)
 # Only platform-admin role can sync — dev-team has read-only access
 apiVersion: argoproj.io/v1alpha1
@@ -10,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "Platform infrastructure — Istio, monitoring, cert-manager, ESO, namespaces"
+  description: "Platform infrastructure — Istio, monitoring, cert-manager, Vault, ESO, namespaces"
 
   sourceRepos:
     - https://github.com/PodYourLife/k8s-platform.git
@@ -51,6 +51,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: cert-manager
       server: https://kubernetes.default.svc
+    - namespace: vault
+      server: https://kubernetes.default.svc
 
   # Explicit least-privilege list — only the cluster-scoped resource types
   # actually required by platform components. Wildcard would allow any
@@ -80,6 +82,8 @@ spec:
       kind: "*"
     - group: cert-manager.io
       kind: ClusterIssuer
+    - group: external-secrets.io
+      kind: ClusterSecretStore
 
   namespaceResourceWhitelist:
     - group: "*"
