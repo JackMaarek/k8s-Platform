@@ -1,6 +1,11 @@
 # Installs the Istio ingress gateway
 # Entry point for all external traffic into the mesh
-# Depends on: istiod
+# Depends on: istiod (wave -1) + istio-cni (wave 0-1)
+#
+# Deployed in istio-ingress namespace (istio-injection: enabled).
+# The gateway pod uses image: auto — substituted at creation time
+# by the istio-sidecar-injector MutatingAdmissionWebhook.
+# Wave 2 guarantees istiod is healthy and the webhook is registered.
 #
 # Default service type: LoadBalancer
 # EKS: cloud NLB provisioned automatically via AWS Load Balancer Controller
@@ -13,7 +18,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: platform
 
@@ -24,15 +29,36 @@ spec:
     helm:
       releaseName: istio-ingressgateway
       values: |
-        # Disable sidecar injection — the gateway is itself an Envoy proxy.
-        # Injecting a second proxy would create a circular dependency and
-        # result in a container with image "auto" that cannot be resolved.
-        podAnnotations:
-          sidecar.istio.io/inject: "false"
+        # HA configuration — minimum 2 replicas for zero-downtime upgrades
+        replicaCount: 2
+
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 5
+          targetCPUUtilizationPercentage: 80
+
+        # PodDisruptionBudget — at least 1 replica always available
+        podDisruptionBudget:
+          minAvailable: 1
+
+        service:
+          type: LoadBalancer
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: nlb
+            service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: istio-system
+    namespace: istio-ingress
 
   syncPolicy:
     automated:

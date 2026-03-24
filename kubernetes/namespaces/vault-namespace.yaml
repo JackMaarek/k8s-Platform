@@ -1,0 +1,19 @@
+# Namespace: vault
+# Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
+#
+# Dedicated namespace for HashiCorp Vault (dev mode on Kind).
+# Vault provides the secret backend for ESO on local development clusters.
+# On EKS, ESO connects directly to AWS Secrets Manager — Vault is not deployed.
+#
+# Istio injection disabled — Vault is a platform operator, not a mesh service.
+# ESO connects to Vault over cluster-internal HTTP (http://vault.vault:8200).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    platform.podyourlife.io/domain: secrets
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline

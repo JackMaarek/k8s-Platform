@@ -1,7 +1,6 @@
 # AppProject: platform
-# Scope: all infrastructure — Istio, monitoring, sealed-secrets, namespaces
-# Allowed destinations: istio-system, monitoring, argocd, kube-system
-# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces)
+# Scope: all infrastructure — Istio, monitoring, cert-manager, Vault, ESO, namespaces
+# Cluster-scoped resources allowed (CRDs, ClusterRoles, Namespaces, ClusterIssuers)
 # Only platform-admin role can sync — dev-team has read-only access
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -11,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "Platform infrastructure — Istio, monitoring, ESO, namespaces"
+  description: "Platform infrastructure — Istio, monitoring, cert-manager, Vault, ESO, namespaces"
 
   sourceRepos:
     - __REPO_URL__
@@ -23,9 +22,12 @@ spec:
     - https://charts.external-secrets.io
     - https://kyverno.github.io/kyverno/
     - https://opencost.github.io/opencost-helm-chart
+    - https://charts.jetstack.io
 
   destinations:
     - namespace: istio-system
+      server: https://kubernetes.default.svc
+    - namespace: istio-ingress
       server: https://kubernetes.default.svc
     - namespace: monitoring
       server: https://kubernetes.default.svc
@@ -47,8 +49,14 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: finops
       server: https://kubernetes.default.svc
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: vault
+      server: https://kubernetes.default.svc
 
-  # Platform manages cluster-wide resources: Namespaces, CRDs, RBAC
+  # Explicit least-privilege list — only the cluster-scoped resource types
+  # actually required by platform components. Wildcard would allow any
+  # Application in this project to create arbitrary cluster-scoped resources.
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
@@ -72,6 +80,10 @@ spec:
       kind: "*"
     - group: wgpolicyk8s.io
       kind: "*"
+    - group: cert-manager.io
+      kind: ClusterIssuer
+    - group: external-secrets.io
+      kind: ClusterSecretStore
 
   namespaceResourceWhitelist:
     - group: "*"
