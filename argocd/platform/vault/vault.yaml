@@ -1,0 +1,76 @@
+# HashiCorp Vault — dev mode secret backend for ESO on Kind.
+#
+# Dev mode: single pod, in-memory storage, root token "root", unsealed.
+# Data is lost on pod restart — this is intentional for dev.
+# Secrets are re-seeded by the bootstrap script (docs/local-development.md).
+#
+# Wave 17 — after cert-manager (wave 15-16), before ESO ClusterSecretStore.
+# On EKS environments, this ApplicationSet is not present — ESO connects
+# directly to AWS Secrets Manager via IRSA.
+#
+# Ref: https://developer.hashicorp.com/vault/docs/platform/k8s/helm
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vault
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: dev
+            targetRevision: dev
+            awsRegion: eu-west-3
+            esoIrsaRoleArn: ""
+  template:
+    metadata:
+      name: 'vault-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "17"
+    spec:
+      project: platform
+      source:
+        repoURL: https://helm.releases.hashicorp.com
+        chart: vault
+        targetRevision: 0.29.1
+        helm:
+          releaseName: vault
+          values: |
+            # Dev mode — single pod, in-memory, auto-unsealed, root token "root".
+            server:
+              dev:
+                enabled: true
+                devRootToken: "root"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+              # Disable data storage — dev mode uses in-memory backend.
+              dataStorage:
+                enabled: false
+
+            # Disable injector — we use ESO, not Vault Agent sidecar.
+            injector:
+              enabled: false
+
+            # UI accessible via port-forward for local debugging.
+            ui:
+              enabled: true
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: vault
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
