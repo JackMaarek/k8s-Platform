@@ -45,6 +45,9 @@ spec:
                     value: "docker.io/library/*"
                   - key: "{{ element.image }}"
                     operator: NotEquals
+                    value: "docker.io/hashicorp/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
                     value: "registry.k8s.io/*"
                   - key: "{{ element.image }}"
                     operator: NotEquals
