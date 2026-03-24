@@ -1,0 +1,43 @@
+# Deploys ClusterIssuer resources for cert-manager.
+# Wave 16 — cert-manager CRDs must exist (wave 15) before ClusterIssuers can sync.
+#
+# Contains:
+#   - selfsigned-issuer: immediate TLS for Kind (local dev)
+#   - letsencrypt-staging: ACME HTTP-01 for EKS (placeholder)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cert-manager-issuers
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+  template:
+    metadata:
+      name: 'cert-manager-issuers-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "16"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/PodYourLife/k8s-platform.git
+        targetRevision: '{{.targetRevision}}'
+        path: kubernetes/manifests/cert-manager
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: cert-manager
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true

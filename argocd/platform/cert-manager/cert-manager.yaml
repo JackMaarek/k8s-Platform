@@ -1,0 +1,91 @@
+# cert-manager — TLS certificate lifecycle management
+# Automates issuance and renewal of TLS certificates for ingress endpoints.
+#
+# Wave 15 — cert-manager has no dependency on the monitoring or policy stack.
+# Certificates are only consumed later when Istio Gateway routes are configured.
+# Installing late avoids contention during the critical Istio bootstrap sequence.
+#
+# CRDs are installed via crds.enabled=true (recommended since cert-manager 1.15+).
+# The installCRDs value is deprecated — do not use.
+#
+# Ref: https://cert-manager.io/docs/installation/helm/
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+  template:
+    metadata:
+      name: 'cert-manager-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "15"
+    spec:
+      project: platform
+      source:
+        repoURL: https://charts.jetstack.io
+        chart: cert-manager
+        targetRevision: v1.20.0
+        helm:
+          releaseName: cert-manager
+          values: |
+            # Install CRDs via Helm — recommended approach since 1.15+.
+            crds:
+              enabled: true
+
+            # Resource limits — cert-manager is lightweight.
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+            webhook:
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+
+            cainjector:
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+
+            # Prometheus metrics — scraped by the existing Prometheus stack.
+            prometheus:
+              enabled: true
+              servicemonitor:
+                enabled: true
+                labels:
+                  release: prometheus
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: cert-manager
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
