@@ -14,6 +14,6 @@ metadata:
   labels:
     platform.podyourlife.io/domain: secrets
     istio-injection: disabled
-    pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline
