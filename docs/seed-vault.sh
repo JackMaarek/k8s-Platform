@@ -75,10 +75,30 @@ echo "✅ Grafana credentials stored"
 
 echo ""
 echo "--- GHCR image pull token ---"
-echo "Generate a GitHub PAT with read:packages scope at:"
-echo "  https://github.com/settings/tokens"
-prompt GHCR_USER "GitHub username"
-prompt_secret GHCR_TOKEN "GitHub PAT (read:packages)"
+
+GHCR_USER=""
+GHCR_TOKEN=""
+
+# Auto-detect GitHub credentials via gh CLI
+if command -v gh &>/dev/null && gh auth status &>/dev/null; then
+  GH_TOKEN=$(gh auth token)
+  GH_USER=$(gh api user --jq .login)
+  MASKED_TOKEN="${GH_TOKEN:0:4}$(printf '*%.0s' $(seq 1 $((${#GH_TOKEN} - 8))))${GH_TOKEN: -4}"
+  echo "⚠ PAT GitHub détecté sur la machine — user: ${GH_USER}, token: ${MASKED_TOKEN}"
+  read -rp "Utiliser ce token ? [Y/n]: " USE_GH
+  if [[ ! "${USE_GH}" =~ ^[Nn]$ ]]; then
+    GHCR_USER="${GH_USER}"
+    GHCR_TOKEN="${GH_TOKEN}"
+  fi
+fi
+
+# Fallback: manual prompt if no token detected or user declined
+if [ -z "${GHCR_TOKEN}" ]; then
+  echo "Generate a GitHub PAT with read:packages scope at:"
+  echo "  https://github.com/settings/tokens"
+  prompt GHCR_USER "GitHub username"
+  prompt_secret GHCR_TOKEN "GitHub PAT (read:packages)"
+fi
 
 DOCKER_AUTH=$(echo -n "${GHCR_USER}:${GHCR_TOKEN}" | base64)
 DOCKER_CONFIG="{\"auths\":{\"ghcr.io\":{\"auth\":\"${DOCKER_AUTH}\"}}}"
