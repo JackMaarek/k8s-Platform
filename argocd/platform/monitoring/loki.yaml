@@ -15,13 +15,13 @@ spec:
   generators:
     - list:
         elements:
-          - env: dev
-            targetRevision: dev
-            awsRegion: eu-west-3
-            esoIrsaRoleArn: ""
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
   template:
     metadata:
-      name: 'loki-dev'
+      name: 'loki-{{.env}}'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -38,7 +38,7 @@ spec:
             valueFiles:
               - $values/kubernetes/helm/monitoring/loki-values.yaml
         - repoURL: https://github.com/PodYourLife/k8s-platform.git
-          targetRevision: 'dev'
+          targetRevision: '{{.targetRevision}}'
           ref: values
       destination:
         server: https://kubernetes.default.svc

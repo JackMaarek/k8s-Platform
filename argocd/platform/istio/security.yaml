@@ -11,13 +11,13 @@ spec:
   generators:
     - list:
         elements:
-          - env: dev
-            targetRevision: dev
-            awsRegion: eu-west-3
-            esoIrsaRoleArn: ""
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+            esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
   template:
     metadata:
-      name: 'istio-security-dev'
+      name: 'istio-security-{{.env}}'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -28,7 +28,7 @@ spec:
       project: platform
       source:
         repoURL: https://github.com/PodYourLife/k8s-platform.git
-        targetRevision: 'dev'
+        targetRevision: '{{.targetRevision}}'
         path: istio/security
       destination:
         server: https://kubernetes.default.svc
