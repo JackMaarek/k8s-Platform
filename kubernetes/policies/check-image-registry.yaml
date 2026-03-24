@@ -29,6 +29,7 @@ spec:
                 - istio-system
                 - monitoring
                 - cert-manager
+                - external-secrets
       validate:
         message: >-
           Images must come from ghcr.io/PodYourLife/ or an allowed system registry.
@@ -43,6 +44,9 @@ spec:
                   - key: "{{ element.image }}"
                     operator: NotEquals
                     value: "docker.io/library/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "docker.io/hashicorp/*"
                   - key: "{{ element.image }}"
                     operator: NotEquals
                     value: "registry.k8s.io/*"
