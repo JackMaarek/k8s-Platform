@@ -1,0 +1,33 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+---
+# PodMonitor — single resource for Prometheus target discovery on ML Jobs.
+#
+# Targets pods directly by label selector — no intermediate Service needed.
+# Batch Jobs are ephemeral and never exposed via a Service, making PodMonitor
+# the correct discovery mechanism. This is a CRD from the Prometheus Operator,
+# part of the kube-prometheus-stack already deployed on the platform (wave 8).
+#
+# Ref: https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.PodMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "ml-batch-job.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "ml-batch-job.labels" . | nindent 4 }}
+    # release: prometheus is required for kube-prometheus-stack discovery.
+    # Without it, Prometheus ignores this resource.
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "ml-batch-job.selectorLabels" . | nindent 6 }}
+      ml-platform/job-type: cpu-train
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace.name }}
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.scrapeInterval }}
+{{- end }}

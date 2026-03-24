@@ -20,11 +20,9 @@ spec:
         {{- include "ml-batch-job.selectorLabels" . | nindent 8 }}
         ml-platform/job-type: gpu-extract
         ml-platform/run-id: {{ .Values.job.runId | quote }}
-      annotations:
-        # Disable Istio sidecar — Jobs must reach Completed status cleanly.
-        # Envoy does not terminate when the main container exits, which would
-        # block the pod indefinitely. ML jobs use IRSA for AWS access, not mesh.
-        sidecar.istio.io/inject: "false"
+      # Istio 1.27+ injects the proxy as a native sidecar (initContainer
+      # with restartPolicy: Always). The pod transitions to Completed
+      # cleanly when the main container exits — no annotation override needed.
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "ml-batch-job.serviceAccountName" . }}

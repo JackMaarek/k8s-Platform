@@ -19,8 +19,6 @@ metadata:
   labels:
     {{- include "ml-batch-job.labels" . | nindent 4 }}
 data:
-  {{- if .Values.config }}
-  {{- toYaml .Values.config | nindent 2 }}
-  {{- else }}
-  {}
+  {{- range $key, $val := .Values.config }}
+  {{ $key }}: {{ $val | quote }}
   {{- end }}

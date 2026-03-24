@@ -1,10 +1,13 @@
 {{- if and .Values.metrics.enabled .Values.metrics.grafanaDashboard.enabled }}
 ---
+# Dashboard ConfigMap must be in the monitoring namespace — the Grafana
+# k8s-sidecar only scans its own namespace by default. Placing dashboards
+# in the workload namespace (ml) would make them invisible to Grafana.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "ml-batch-job.fullname" . }}-dashboard
-  namespace: {{ .Values.namespace.name }}
+  namespace: monitoring
   labels:
     {{- include "ml-batch-job.labels" . | nindent 4 }}
     # grafana_dashboard: "1" is required for the Grafana k8s-sidecar to

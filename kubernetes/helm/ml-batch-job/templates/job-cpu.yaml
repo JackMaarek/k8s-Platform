@@ -18,15 +18,16 @@ spec:
         ml-platform/job-type: cpu-train
         ml-platform/run-id: {{ .Values.job.runId | quote }}
       annotations:
-        # Disable Istio sidecar injection — see job-gpu.yaml for rationale.
-        sidecar.istio.io/inject: "false"
         {{- if .Values.metrics.enabled }}
-        # Prometheus scrape annotations — used as fallback if ServiceMonitor
-        # is not available. ServiceMonitor takes precedence when enabled.
+        # Prometheus scrape annotations — used as fallback if PodMonitor
+        # is not available. PodMonitor takes precedence when enabled.
         prometheus.io/scrape: "true"
         prometheus.io/port: {{ .Values.metrics.metricsPort | quote }}
         prometheus.io/path: "/metrics"
         {{- end }}
+      # Istio 1.27+ injects the proxy as a native sidecar (initContainer
+      # with restartPolicy: Always). The pod transitions to Completed
+      # cleanly when the main container exits — no annotation override needed.
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "ml-batch-job.serviceAccountName" . }}

@@ -6,7 +6,7 @@
 # security profile: GPU resources, IRSA annotations, large PVCs, batch Jobs.
 # Isolating them prevents dev-team from accidentally modifying ML resources.
 #
-# Destinations: ml namespace only.
+# Destinations: ml namespace (workloads) + monitoring (Grafana dashboards).
 # Evolution path: add ml-<project> namespaces here as new projects onboard.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -24,6 +24,10 @@ spec:
   destinations:
     - namespace: ml
       server: https://kubernetes.default.svc
+    # Grafana dashboard ConfigMaps are deployed in monitoring namespace
+    # because the k8s-sidecar only scans its own namespace by default.
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
 
   # ML workloads are namespace-scoped — no cluster-wide resources needed.
   clusterResourceWhitelist: []
@@ -40,7 +44,7 @@ spec:
     - group: external-secrets.io
       kind: ExternalSecret
     - group: monitoring.coreos.com
-      kind: ServiceMonitor
+      kind: PodMonitor
 
   orphanedResources:
     warn: true
