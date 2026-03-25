@@ -18,6 +18,11 @@ output "permission_set_arn_poweruser_dev" {
   value       = aws_ssoadmin_permission_set.poweruser_dev.arn
 }
 
+output "permission_set_arn_platform_maintainer" {
+  description = "Permission set ARN for platform maintainer access (staging poweruser, prod deny)"
+  value       = aws_ssoadmin_permission_set.platform_maintainer.arn
+}
+
 output "sso_instance_arn" {
   description = "IAM Identity Center instance ARN — reused when adding domain groups"
   value       = local.sso_instance_arn

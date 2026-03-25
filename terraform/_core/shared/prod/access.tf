@@ -26,21 +26,32 @@ module "github_oidc" {
   }
 }
 
-# ── IAM Identity Center ────────────────────────────────────────────────────────
-# Permission sets and group assignments for human developers.
-# Users are added to groups in the AWS console (or via SCIM if Okta is connected).
+# ── IAM Identity Center (assignment only) ────────────────────────────────────
+# Permission sets and groups are created by the bootstrap module in shared/dev.
+# This module only adds prod-specific account assignments.
 #
-# Groups:
-#   platform-devs        → poweruser dev, readonly staging + prod
-#   platform-maintainers → poweruser dev + staging, readonly prod
+# Access matrix for prod:
+#   platform-devs        → readonly
+#   platform-maintainers → readonly (prod apply is CI-only)
 
-module "identity_center" {
-  source = "../../modules/aws/identity-center"
+data "terraform_remote_state" "shared_dev" {
+  backend = "s3"
+  config = {
+    bucket = "__DEV_STATE_BUCKET__"
+    key    = "core/shared/dev/terraform.tfstate"
+    region = "__AWS_REGION__"
+  }
+}
 
-  cluster_name       = var.cluster_name
-  account_id_dev     = var.account_id_dev
-  account_id_staging = var.account_id_staging
-  account_id_prod    = var.account_id_prod
+module "identity_center_assignment" {
+  source = "../../modules/aws/identity-center-assignment"
+
+  account_id                    = var.account_id
+  sso_instance_arn              = data.terraform_remote_state.shared_dev.outputs.sso_instance_arn
+  permission_set_arn_readonly   = data.terraform_remote_state.shared_dev.outputs.permission_set_arn_readonly
+  permission_set_arn_maintainers = data.terraform_remote_state.shared_dev.outputs.permission_set_arn_readonly
+  group_id_platform_devs        = data.terraform_remote_state.shared_dev.outputs.group_id_platform_devs
+  group_id_platform_maintainers = data.terraform_remote_state.shared_dev.outputs.group_id_platform_maintainers
 
   tags = {
     Environment = var.environment

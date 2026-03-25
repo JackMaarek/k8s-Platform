@@ -31,18 +31,8 @@ variable "public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
-variable "account_id_dev" {
-  description = "AWS account ID for dev — used by IAM Identity Center assignments"
-  type        = string
-}
-
-variable "account_id_staging" {
-  description = "AWS account ID for staging — used by IAM Identity Center assignments"
-  type        = string
-}
-
-variable "account_id_prod" {
-  description = "AWS account ID for prod — used by IAM Identity Center assignments"
+variable "account_id" {
+  description = "AWS account ID for this environment — used by IAM Identity Center assignments"
   type        = string
 }
 
