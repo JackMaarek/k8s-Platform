@@ -26,21 +26,20 @@ module "github_oidc" {
   }
 }
 
-# ── IAM Identity Center ────────────────────────────────────────────────────────
-# Permission sets and group assignments for human developers.
+# ── IAM Identity Center (bootstrap) ──────────────────────────────────────────
+# Creates permission sets, groups, and dev-only account assignments.
+# Staging and prod add their own assignments via identity-center-assignment module.
 # Users are added to groups in the AWS console (or via SCIM if Okta is connected).
 #
 # Groups:
 #   platform-devs        → poweruser dev, readonly staging + prod
 #   platform-maintainers → poweruser dev + staging, readonly prod
 
-module "identity_center" {
-  source = "../../modules/aws/identity-center"
+module "identity_center_bootstrap" {
+  source = "../../modules/aws/identity-center-bootstrap"
 
-  cluster_name       = var.cluster_name
-  account_id_dev     = var.account_id_dev
-  account_id_staging = var.account_id_staging
-  account_id_prod    = var.account_id_prod
+  cluster_name = var.cluster_name
+  account_id   = var.account_id
 
   tags = {
     Environment = var.environment
