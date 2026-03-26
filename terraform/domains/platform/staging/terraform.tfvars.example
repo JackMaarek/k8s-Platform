@@ -1,8 +1,9 @@
 # terraform.tfvars.example
 # Copy to terraform.tfvars and adjust to your infrastructure needs.
 
-aws_region  = "eu-west-3"
-environment = "staging"
+aws_region   = "__AWS_REGION__"
+environment  = "__ENV__"
+state_bucket = "__STATE_BUCKET__"
 
 # ── Node groups ────────────────────────────────────────────────────────────────
 # Each key becomes a node group named: {cluster_name}-{key}
