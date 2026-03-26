@@ -2,10 +2,10 @@
 # Copy to terraform.tfvars and fill in values.
 # terraform.tfvars is gitignored — this file is safe to commit.
 
-aws_region         = "eu-west-3"
-cluster_name       = "staging-k8s"
-environment        = "staging"
+aws_region         = "__AWS_REGION__"
+cluster_name       = "__CLUSTER_NAME__"
+environment        = "__ENV__"
 kubernetes_version = "1.32"
 compliance_profile = "none"   # none | soc2 | hipaa
 
-account_id = "234567890123"
+account_id = "__AWS_ACCOUNT_ID__"
