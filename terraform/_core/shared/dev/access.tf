@@ -1,5 +1,8 @@
 # access.tf
-# Responsibility: developer access (IAM Identity Center) + CI access (GitHub OIDC)
+# Responsibility: CI access via GitHub Actions OIDC.
+#
+# IAM Identity Center (permission sets, groups, account assignments) is managed
+# in domains/organization — not here. Each env account is self-contained.
 #
 # IdP is currently AWS IAM Identity Center standalone (free, zero friction).
 # To switch to Okta/Google/Keycloak: configure external IdP in IAM Identity Center
@@ -23,26 +26,5 @@ module "github_oidc" {
   tags = {
     Environment = var.environment
     Component   = "ci-access"
-  }
-}
-
-# ── IAM Identity Center (bootstrap) ──────────────────────────────────────────
-# Creates permission sets, groups, and dev-only account assignments.
-# Staging and prod add their own assignments via identity-center-assignment module.
-# Users are added to groups in the AWS console (or via SCIM if Okta is connected).
-#
-# Groups:
-#   platform-devs        → poweruser dev, readonly staging + prod
-#   platform-maintainers → poweruser dev + staging, readonly prod
-
-module "identity_center_bootstrap" {
-  source = "../../modules/aws/identity-center-bootstrap"
-
-  cluster_name = var.cluster_name
-  account_id   = var.account_id
-
-  tags = {
-    Environment = var.environment
-    Component   = "developer-access"
   }
 }
