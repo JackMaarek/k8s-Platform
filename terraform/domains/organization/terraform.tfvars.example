@@ -1,0 +1,14 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in values.
+# terraform.tfvars is gitignored — this file is safe to commit.
+#
+# Single-account setup: set all four account IDs to the same value.
+# Multi-account setup:  each variable holds a distinct AWS account ID.
+
+aws_region            = "__AWS_REGION__"
+cluster_name          = "__CLUSTER_NAME__"
+management_account_id = "__AWS_ACCOUNT_ID__"
+
+dev_account_id     = "__AWS_ACCOUNT_ID_DEV__"
+staging_account_id = "__AWS_ACCOUNT_ID_STAGING__"
+prod_account_id    = "__AWS_ACCOUNT_ID_PROD__"
