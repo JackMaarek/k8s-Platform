@@ -31,10 +31,10 @@ module "node_groups" {
   taints         = each.value.taints
 
   tags = {
-    Environment                                           = var.environment
-    NodeGroup                                             = each.key
-    "k8s.io/cluster-autoscaler/enabled"                  = "true"
-    "k8s.io/cluster-autoscaler/${local.cluster_id}"      = "owned"
+    Environment                                     = var.environment
+    NodeGroup                                       = each.key
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${local.cluster_id}" = "owned"
   }
 }
 

@@ -62,9 +62,9 @@ resource "aws_ssoadmin_permission_set_inline_policy" "poweruser_dev_deny_prod" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "DenyProdAndStagingWrite"
-        Effect = "Deny"
-        Action = ["*"]
+        Sid      = "DenyProdAndStagingWrite"
+        Effect   = "Deny"
+        Action   = ["*"]
         Resource = ["*"]
         Condition = {
           StringEquals = {

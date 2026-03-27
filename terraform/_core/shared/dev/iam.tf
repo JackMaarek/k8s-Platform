@@ -16,7 +16,7 @@ module "irsa_eso" {
 
   policy_statements = [
     {
-      effect  = "Allow"
+      effect = "Allow"
       actions = [
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret",
