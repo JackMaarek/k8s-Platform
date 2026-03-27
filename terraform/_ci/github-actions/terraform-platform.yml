@@ -1,20 +1,24 @@
-# terraform-shared.yml
-# CI pipeline for _domains/platform — the cluster foundation.
-# Triggered only when shared infrastructure files change.
-# plan on PR, apply on merge to main.
+# terraform-platform.yml
+# CI pipeline for domains/platform — node groups, IRSA.
+#
+# Trigger model (env-branch):
+#   push on dev/staging/prod → plan + apply for that env
+#   pull_request targeting dev/staging/prod → plan + comment on PR
+#
+# Apply requires GitHub Environment approval for staging and prod.
 
 name: terraform · domains/platform
 
 on:
   push:
-    branches: [main]
+    branches: [dev, staging, prod]
     paths:
-      - "terraform/_domains/platform/**"
+      - "terraform/domains/platform/**"
       - "terraform/_core/modules/**"
   pull_request:
-    branches: [main]
+    branches: [dev, staging, prod]
     paths:
-      - "terraform/_domains/platform/**"
+      - "terraform/domains/platform/**"
       - "terraform/_core/modules/**"
 
 env:
@@ -22,9 +26,21 @@ env:
   AWS_REGION: "eu-west-3"
 
 jobs:
+  resolve-env:
+    name: resolve env
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.resolve.outputs.env }}
+    steps:
+      - id: resolve
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          echo "env=${BRANCH}" >> "$GITHUB_OUTPUT"
+
   lint:
     name: lint
     runs-on: ubuntu-latest
+    needs: resolve-env
     steps:
       - uses: actions/checkout@v4
 
@@ -33,21 +49,19 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform fmt check
-        run: terraform fmt -check -recursive terraform/_core/
+        run: terraform fmt -check -recursive terraform/domains/
 
       - uses: terraform-linters/setup-tflint@v4
+
       - name: tflint
         run: |
           tflint --config terraform/_ci/.tflint.hcl \
-                 --chdir terraform/_domains/platform/dev
+                 --chdir terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
 
   plan:
-    name: plan · ${{ matrix.env }}
+    name: plan · ${{ needs.resolve-env.outputs.env }}
     runs-on: ubuntu-latest
-    needs: lint
-    strategy:
-      matrix:
-        env: [dev, staging, prod]
+    needs: [resolve-env, lint]
     permissions:
       id-token: write
       contents: read
@@ -57,7 +71,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_PLAN_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: hashicorp/setup-terraform@v3
@@ -65,16 +79,16 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform init
-        working-directory: terraform/_domains/platform/${{ matrix.env }}
+        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
         run: terraform init -no-color
 
       - name: terraform validate
-        working-directory: terraform/_domains/platform/${{ matrix.env }}
+        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
         run: terraform validate -no-color
 
       - name: terraform plan
         id: plan
-        working-directory: terraform/_domains/platform/${{ matrix.env }}
+        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
         run: terraform plan -no-color -out=tfplan
 
       - name: post plan to PR
@@ -82,7 +96,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `### terraform plan · domains/platform/${{ matrix.env }}
+            const output = `### terraform plan · domains/platform/${{ needs.resolve-env.outputs.env }}
             \`\`\`
             ${{ steps.plan.outputs.stdout }}
             \`\`\``;
@@ -94,16 +108,11 @@ jobs:
             });
 
   apply:
-    name: apply · ${{ matrix.env }}
+    name: apply · ${{ needs.resolve-env.outputs.env }}
     runs-on: ubuntu-latest
-    needs: plan
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: ${{ matrix.env }}
-    strategy:
-      # Apply environments sequentially: dev → staging → prod
-      max-parallel: 1
-      matrix:
-        env: [dev, staging, prod]
+    needs: [resolve-env, plan]
+    if: github.event_name == 'push'
+    environment: ${{ needs.resolve-env.outputs.env }}
     permissions:
       id-token: write
       contents: read
@@ -120,9 +129,9 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform init
-        working-directory: terraform/_domains/platform/${{ matrix.env }}
+        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
         run: terraform init -no-color
 
       - name: terraform apply
-        working-directory: terraform/_domains/platform/${{ matrix.env }}
+        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
         run: terraform apply -auto-approve -no-color
