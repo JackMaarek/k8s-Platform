@@ -58,7 +58,7 @@ jobs:
 
       - name: tflint
         run: |
-          tflint --config terraform/_ci/.tflint.hcl \
+          tflint --config $GITHUB_WORKSPACE/terraform/_ci/.tflint.hcl \
                  --chdir terraform/_core/shared/${{ needs.resolve-env.outputs.env }}
 
   # ── Plan — run on push and pull_request ────────────────────────────────────

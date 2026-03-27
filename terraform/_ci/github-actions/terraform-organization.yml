@@ -46,7 +46,7 @@ jobs:
 
       - name: tflint
         run: |
-          tflint --config terraform/_ci/.tflint.hcl \
+          tflint --config $GITHUB_WORKSPACE/terraform/_ci/.tflint.hcl \
                  --chdir terraform/domains/organization
 
   plan:
