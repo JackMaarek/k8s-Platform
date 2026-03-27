@@ -97,18 +97,6 @@ output "github_apply_role_arn" {
 }
 
 
-output "group_id_platform_devs" {
-  description = "IAM Identity Center group ID for platform-devs — from dev bootstrap state"
-  value       = data.terraform_remote_state.shared_dev.outputs.group_id_platform_devs
-}
-
-
-output "group_id_platform_maintainers" {
-  description = "IAM Identity Center group ID for platform-maintainers — from dev bootstrap state"
-  value       = data.terraform_remote_state.shared_dev.outputs.group_id_platform_maintainers
-}
-
-
 # ── Compliance ─────────────────────────────────────────────────────────────────
 
 output "kms_compliance_key_arn" {
