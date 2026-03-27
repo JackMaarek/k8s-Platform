@@ -1,46 +1,37 @@
-# terraform-platform.yml
-# CI pipeline for domains/platform — node groups, IRSA.
+# terraform-organization.yml
+# CI pipeline for domains/organization — IAM Identity Center bootstrap.
 #
-# Trigger model (env-branch):
-#   push on dev/staging/prod → plan + apply for that env
-#   pull_request targeting dev/staging/prod → plan + comment on PR
+# This root runs once and covers all account assignments (dev, staging, prod).
+# It is deployed from the dev branch — no per-env matrix needed.
 #
-# Apply requires GitHub Environment approval for staging and prod.
+# Trigger model:
+#   push on dev → plan + apply
+#   pull_request targeting dev → plan + comment on PR
 
-name: terraform · domains/platform
+name: terraform · domains/organization
 
 on:
   push:
-    branches: [dev, staging, prod]
+    branches: [dev]
     paths:
-      - "terraform/domains/platform/**"
-      - "terraform/_core/modules/**"
+      - "terraform/domains/organization/**"
+      - "terraform/_core/modules/aws/identity-center-bootstrap/**"
+      - "terraform/_core/modules/aws/identity-center-assignment/**"
   pull_request:
-    branches: [dev, staging, prod]
+    branches: [dev]
     paths:
-      - "terraform/domains/platform/**"
-      - "terraform/_core/modules/**"
+      - "terraform/domains/organization/**"
+      - "terraform/_core/modules/aws/identity-center-bootstrap/**"
+      - "terraform/_core/modules/aws/identity-center-assignment/**"
 
 env:
   TF_VERSION: "1.7.5"
   AWS_REGION: "eu-west-3"
 
 jobs:
-  resolve-env:
-    name: resolve env
-    runs-on: ubuntu-latest
-    outputs:
-      env: ${{ steps.resolve.outputs.env }}
-    steps:
-      - id: resolve
-        run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          echo "env=${BRANCH}" >> "$GITHUB_OUTPUT"
-
   lint:
     name: lint
     runs-on: ubuntu-latest
-    needs: resolve-env
     steps:
       - uses: actions/checkout@v4
 
@@ -49,19 +40,19 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform fmt check
-        run: terraform fmt -check -recursive terraform/domains/
+        run: terraform fmt -check -recursive terraform/domains/organization/
 
       - uses: terraform-linters/setup-tflint@v4
 
       - name: tflint
         run: |
           tflint --config terraform/_ci/.tflint.hcl \
-                 --chdir terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+                 --chdir terraform/domains/organization
 
   plan:
-    name: plan · ${{ needs.resolve-env.outputs.env }}
+    name: plan · organization
     runs-on: ubuntu-latest
-    needs: [resolve-env, lint]
+    needs: lint
     permissions:
       id-token: write
       contents: read
@@ -79,16 +70,16 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform init
-        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+        working-directory: terraform/domains/organization
         run: terraform init -no-color
 
       - name: terraform validate
-        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+        working-directory: terraform/domains/organization
         run: terraform validate -no-color
 
       - name: terraform plan
         id: plan
-        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+        working-directory: terraform/domains/organization
         run: terraform plan -no-color -out=tfplan
 
       - name: post plan to PR
@@ -96,7 +87,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `### terraform plan · domains/platform/${{ needs.resolve-env.outputs.env }}
+            const output = `### terraform plan · domains/organization
             \`\`\`
             ${{ steps.plan.outputs.stdout }}
             \`\`\``;
@@ -108,11 +99,11 @@ jobs:
             });
 
   apply:
-    name: apply · ${{ needs.resolve-env.outputs.env }}
+    name: apply · organization
     runs-on: ubuntu-latest
-    needs: [resolve-env, plan]
+    needs: plan
     if: github.event_name == 'push'
-    environment: ${{ needs.resolve-env.outputs.env }}
+    environment: dev
     permissions:
       id-token: write
       contents: read
@@ -129,9 +120,9 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform init
-        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+        working-directory: terraform/domains/organization
         run: terraform init -no-color
 
       - name: terraform apply
-        working-directory: terraform/domains/platform/${{ needs.resolve-env.outputs.env }}
+        working-directory: terraform/domains/organization
         run: terraform apply -auto-approve -no-color

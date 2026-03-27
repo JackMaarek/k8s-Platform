@@ -36,7 +36,9 @@ resource "aws_iam_role_policy_attachment" "terraform_plan_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
-# ── Terraform apply role — main branch only (post-merge) ──────────────────────
+# ── Terraform apply role — env branches + main ───────────────────────────────
+# Scoped to env branches (dev, staging, prod) and main.
+# plan role covers all branches (*) — apply role is restricted to named branches.
 
 resource "aws_iam_role" "terraform_apply" {
   name = "${var.cluster_name}-github-terraform-apply"
@@ -50,9 +52,17 @@ resource "aws_iam_role" "terraform_apply" {
         Federated = aws_iam_openid_connect_provider.github.arn
       }
       Condition = {
-        # Scoped to main branch only — no apply from feature branches
+        # Allow apply from env branches (dev, staging, prod) and main.
+        # Feature branches use the plan role only — no apply from PR branches.
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/dev",
+            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/staging",
+            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/prod",
+          ]
+        }
         StringEquals = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
       }

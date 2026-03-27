@@ -20,7 +20,7 @@ repos:
       # Run TFLint on all modules and environments
       - id: terraform_tflint
         args:
-          - --args=--config=__GIT_WORKING_DIR__/_ci/.tflint.hcl
+          - --args=--config=./terraform/_ci/.tflint.hcl
 
       # Check for hardcoded credentials
       - id: terraform_trivy
