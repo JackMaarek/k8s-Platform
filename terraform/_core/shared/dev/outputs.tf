@@ -103,44 +103,6 @@ output "github_apply_role_arn" {
 }
 
 
-output "group_id_platform_devs" {
-  description = "IAM Identity Center group ID for platform-devs — add users via AWS console or SCIM"
-  value       = module.identity_center_bootstrap.group_id_platform_devs
-}
-
-
-output "group_id_platform_maintainers" {
-  description = "IAM Identity Center group ID for platform-maintainers"
-  value       = module.identity_center_bootstrap.group_id_platform_maintainers
-}
-
-
-# ── Identity Center (consumed by staging/prod via terraform_remote_state) ────
-
-output "sso_instance_arn" {
-  description = "IAM Identity Center instance ARN — used by staging/prod assignment modules"
-  value       = module.identity_center_bootstrap.sso_instance_arn
-}
-
-
-output "identity_store_id" {
-  description = "Identity store ID — used by staging/prod assignment modules"
-  value       = module.identity_center_bootstrap.identity_store_id
-}
-
-
-output "permission_set_arn_readonly" {
-  description = "ReadOnly permission set ARN — used by staging/prod assignment modules"
-  value       = module.identity_center_bootstrap.permission_set_arn_readonly
-}
-
-
-output "permission_set_arn_platform_maintainer" {
-  description = "Platform maintainer permission set ARN — used by staging assignment module"
-  value       = module.identity_center_bootstrap.permission_set_arn_platform_maintainer
-}
-
-
 # ── Compliance ─────────────────────────────────────────────────────────────────
 
 output "kms_compliance_key_arn" {
