@@ -31,12 +31,12 @@ module "identity_center_bootstrap" {
 module "identity_center_dev" {
   source = "../../_core/modules/aws/identity-center-assignment"
 
-  account_id                    = var.dev_account_id
-  sso_instance_arn              = module.identity_center_bootstrap.sso_instance_arn
-  permission_set_arn_readonly   = module.identity_center_bootstrap.permission_set_arn_readonly
+  account_id                     = var.dev_account_id
+  sso_instance_arn               = module.identity_center_bootstrap.sso_instance_arn
+  permission_set_arn_readonly    = module.identity_center_bootstrap.permission_set_arn_readonly
   permission_set_arn_maintainers = module.identity_center_bootstrap.permission_set_arn_poweruser_dev
-  group_id_platform_devs        = module.identity_center_bootstrap.group_id_platform_devs
-  group_id_platform_maintainers = module.identity_center_bootstrap.group_id_platform_maintainers
+  group_id_platform_devs         = module.identity_center_bootstrap.group_id_platform_devs
+  group_id_platform_maintainers  = module.identity_center_bootstrap.group_id_platform_maintainers
 
   tags = {
     Environment = "dev"
@@ -51,12 +51,12 @@ module "identity_center_dev" {
 module "identity_center_staging" {
   source = "../../_core/modules/aws/identity-center-assignment"
 
-  account_id                    = var.staging_account_id
-  sso_instance_arn              = module.identity_center_bootstrap.sso_instance_arn
-  permission_set_arn_readonly   = module.identity_center_bootstrap.permission_set_arn_readonly
+  account_id                     = var.staging_account_id
+  sso_instance_arn               = module.identity_center_bootstrap.sso_instance_arn
+  permission_set_arn_readonly    = module.identity_center_bootstrap.permission_set_arn_readonly
   permission_set_arn_maintainers = module.identity_center_bootstrap.permission_set_arn_platform_maintainer
-  group_id_platform_devs        = module.identity_center_bootstrap.group_id_platform_devs
-  group_id_platform_maintainers = module.identity_center_bootstrap.group_id_platform_maintainers
+  group_id_platform_devs         = module.identity_center_bootstrap.group_id_platform_devs
+  group_id_platform_maintainers  = module.identity_center_bootstrap.group_id_platform_maintainers
 
   tags = {
     Environment = "staging"
@@ -71,12 +71,12 @@ module "identity_center_staging" {
 module "identity_center_prod" {
   source = "../../_core/modules/aws/identity-center-assignment"
 
-  account_id                    = var.prod_account_id
-  sso_instance_arn              = module.identity_center_bootstrap.sso_instance_arn
-  permission_set_arn_readonly   = module.identity_center_bootstrap.permission_set_arn_readonly
+  account_id                     = var.prod_account_id
+  sso_instance_arn               = module.identity_center_bootstrap.sso_instance_arn
+  permission_set_arn_readonly    = module.identity_center_bootstrap.permission_set_arn_readonly
   permission_set_arn_maintainers = module.identity_center_bootstrap.permission_set_arn_readonly
-  group_id_platform_devs        = module.identity_center_bootstrap.group_id_platform_devs
-  group_id_platform_maintainers = module.identity_center_bootstrap.group_id_platform_maintainers
+  group_id_platform_devs         = module.identity_center_bootstrap.group_id_platform_devs
+  group_id_platform_maintainers  = module.identity_center_bootstrap.group_id_platform_maintainers
 
   tags = {
     Environment = "prod"

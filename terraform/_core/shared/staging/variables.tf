@@ -43,8 +43,8 @@ variable "compliance_profile" {
       soc2  → CloudTrail, KMS CMK, VPC Flow Logs, GuardDuty, AWS Config (~$30/month)
       hipaa → soc2 + 6yr log retention, stricter KMS deletion window (~$50/month)
   EOT
-  type    = string
-  default = "soc2"
+  type        = string
+  default     = "soc2"
 
   validation {
     condition     = contains(["none", "soc2", "hipaa"], var.compliance_profile)

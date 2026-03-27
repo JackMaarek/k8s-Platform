@@ -17,7 +17,7 @@ variable "dev_account_id" {
     AWS account ID for the dev environment.
     In a single-account setup, set this to the same value as management_account_id.
   EOT
-  type = string
+  type        = string
 }
 
 variable "management_account_id" {
@@ -25,7 +25,7 @@ variable "management_account_id" {
     AWS account ID of the management (root) account where IAM Identity Center
     is activated. In a single-account setup, this equals dev_account_id.
   EOT
-  type = string
+  type        = string
 }
 
 variable "prod_account_id" {
@@ -33,7 +33,7 @@ variable "prod_account_id" {
     AWS account ID for the prod environment.
     In a single-account setup, set this to the same value as management_account_id.
   EOT
-  type = string
+  type        = string
 }
 
 variable "staging_account_id" {
@@ -41,5 +41,5 @@ variable "staging_account_id" {
     AWS account ID for the staging environment.
     In a single-account setup, set this to the same value as management_account_id.
   EOT
-  type = string
+  type        = string
 }
