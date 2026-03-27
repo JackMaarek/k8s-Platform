@@ -17,6 +17,7 @@ platform.yaml              ← source of truth (cluster version, env flags, Isti
       │     │           ├── staging/
       │     │           └── prod/
       │     └── domains/
+      │           ├── organization/     ← IAM Identity Center (org-level, all envs)
       │           └── platform/         ← node groups + domain IRSA
       │                 ├── dev/
       │                 ├── staging/
@@ -41,13 +42,17 @@ platform.yaml              ← source of truth (cluster version, env flags, Isti
 Infrastructure layers are strictly ordered — each layer reads outputs from the one above via `terraform_remote_state`.
 
 ```
-1. terraform/_core/shared/{env}
-   └── provisions VPC, EKS, OIDC, IRSA roles → writes state to S3
+1. terraform/domains/organization
+   └── IAM Identity Center: permission sets, groups, account assignments (all envs)
+   └── runs once in the management account — no dependency on env state
 
-2. terraform/domains/platform/{env}
+2. terraform/_core/shared/{env}
+   └── provisions VPC, EKS, OIDC, IRSA roles, CI access (GitHub OIDC) → writes state to S3
+
+3. terraform/domains/platform/{env}
    └── reads _core/shared state → provisions node groups, CoreDNS addon, domain IRSA
 
-3. platform-bot local up  (or CI)
+4. platform-bot local up  (or CI)
    └── configures kubectl → bootstraps ArgoCD → syncs all platform ApplicationSets
    └── see docs/local-development.md for the full local bootstrap guide
 ```
@@ -68,20 +73,26 @@ aws dynamodb create-table \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST --region eu-west-3
 
-# 2. Configure terraform.tfvars
-cd terraform/_core/shared/dev
+# 2. Apply IAM Identity Center (once per AWS Organization / single-account)
+cd terraform/domains/organization
+cp terraform.tfvars.example terraform.tfvars
+# fill in account IDs (single-account: all IDs equal)
+terraform init && terraform apply
+
+# 3. Configure terraform.tfvars
+cd ../../_core/shared/dev
 cp terraform.tfvars.example terraform.tfvars
 # fill in account IDs, update backend.tf bucket name with $ACCOUNT_ID
 
-# 3. Apply cluster foundation
+# 4. Apply cluster foundation
 terraform init && terraform apply
 
-# 4. Apply domain (node groups)
+# 5. Apply domain (node groups)
 cd ../../../domains/platform/dev
 cp terraform.tfvars.example terraform.tfvars
 terraform init && terraform apply
 
-# 5. Bootstrap platform (local Kind cluster)
+# 6. Bootstrap platform (local Kind cluster)
 $(cd ../../_core/shared/dev && terraform output -raw configure_kubectl)
 platform-bot local up --env dev
 # See docs/local-development.md for the full walkthrough
@@ -126,6 +137,10 @@ See `docs/examples/` for annotated templates.
 | CI (GitHub Actions) | OIDC — no stored credentials | apply on main branch |
 | Prod apply | **CI only** — no human apply | restricted by IAM trust policy |
 
+IAM Identity Center (permission sets, groups, account assignments) is managed in
+`terraform/domains/organization/` — a single root for all environments. `_core/shared/{env}`
+only handles CI access (GitHub Actions OIDC).
+
 After `terraform apply` on `_core/shared/dev`, set these GitHub secrets:
 - `AWS_TERRAFORM_PLAN_ROLE_ARN` ← `terraform output github_plan_role_arn`
 - `AWS_TERRAFORM_ROLE_ARN` ← `terraform output github_apply_role_arn`
@@ -163,6 +178,7 @@ GPU nodes (g4dn.xlarge) start at `desired_size = 0` — zero cost until a GPU wo
 | Topic | Where |
 |-------|-------|
 | Cluster foundation (VPC, EKS, IRSA) | `terraform/_core/shared/{env}/README.md` |
+| IAM Identity Center (org-level) | `terraform/domains/organization/` |
 | Node groups | `terraform/domains/platform/{env}/README.md` |
 | Reusable modules | `terraform/_core/modules/README.md` |
 | Adding a product app | `docs/examples/argocd-application.yaml` |
