@@ -7,5 +7,3 @@ cluster_name       = "__CLUSTER_NAME__"
 environment        = "__ENV__"
 kubernetes_version = "1.32"
 compliance_profile = "none"   # none | soc2 | hipaa
-
-account_id = "__AWS_ACCOUNT_ID__"

@@ -10,7 +10,7 @@ module "eks" {
   private_subnet_ids  = module.vpc.private_subnet_ids
   public_subnet_ids   = module.vpc.public_subnet_ids
   public_access_cidrs = var.public_access_cidrs
-  log_retention_days  = 30
+  log_retention_days  = var.log_retention_days
 
   tags = {
     Environment = var.environment

@@ -31,11 +31,6 @@ variable "public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
-variable "account_id" {
-  description = "AWS account ID for this environment — used by IAM Identity Center assignments"
-  type        = string
-}
-
 variable "compliance_profile" {
   description = <<-EOT
     Compliance profile to activate.
