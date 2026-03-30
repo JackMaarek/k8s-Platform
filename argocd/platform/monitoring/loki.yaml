@@ -32,7 +32,7 @@ spec:
       sources:
         - repoURL: https://grafana.github.io/helm-charts
           chart: loki
-          targetRevision: 6.53.0
+          targetRevision: __LOKI_VERSION__
           helm:
             releaseName: loki
             valueFiles:

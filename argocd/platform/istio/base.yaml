@@ -1,7 +1,7 @@
 # Installs Istio base CRDs and cluster-wide resources
 # Must sync before istiod — istiod depends on these CRDs
 # Chart: https://istio-release.storage.googleapis.com/charts
-# Version: 1.26.0 — compatible with Kubernetes 1.29-1.32
+# Version: __ISTIO_VERSION__ — resolved by platform-bot env hydrate from platform.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -18,7 +18,7 @@ spec:
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts
     chart: base
-    targetRevision: 1.26.4
+    targetRevision: __ISTIO_VERSION__
     helm:
       releaseName: istio-base
 

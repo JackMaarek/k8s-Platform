@@ -36,7 +36,7 @@ spec:
         # OpenCost Helm chart — official CNCF chart repository
         - repoURL: https://opencost.github.io/opencost-helm-chart
           chart: opencost
-          targetRevision: 1.42.0
+          targetRevision: __OPENCOST_VERSION__
           helm:
             releaseName: opencost
             valueFiles:
