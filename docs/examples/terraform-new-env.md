@@ -67,16 +67,8 @@ kubectl get nodes
 
 ## Adding environments
 
-To activate staging or prod, update `platform.yaml`:
-
-```yaml
-environments:
-  staging:
-    enabled: true    # was false
-```
-
-Then run `platform-bot sync` to propagate to tfvars and ApplicationSets,
-and repeat layers 1→2 for the new env.
+Run `platform-bot env setup --env <env>` to initialise the environment branch.
+Then repeat layers 1→2 for the new env.
 
 ## Estimated costs (eu-west-3, SPOT pricing)
 

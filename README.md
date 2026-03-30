@@ -7,7 +7,7 @@ GitOps-first Kubernetes platform for PodYourLife — EKS on AWS, managed by Terr
 ## Architecture overview
 
 ```
-platform.yaml              ← source of truth (cluster version, env flags, Istio version)
+platform.yaml              ← certified component versions + per-env state (managed by platform-bot)
       │
       ├── terraform/                    ← infrastructure
       │     ├── _core/
