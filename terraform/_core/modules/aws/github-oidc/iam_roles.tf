@@ -19,7 +19,9 @@ resource "aws_iam_role" "terraform_plan" {
       }
       Condition = {
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
+          "token.actions.githubusercontent.com:sub" = [
+            for repo in var.allowed_repos : "repo:${var.github_org}/${repo}:*"
+          ]
         }
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
@@ -52,15 +54,17 @@ resource "aws_iam_role" "terraform_apply" {
         Federated = aws_iam_openid_connect_provider.github.arn
       }
       Condition = {
-        # Allow apply from env branches (dev, staging, prod) and main.
+        # Allow apply from env branches (dev, staging, prod) and the apply branch pattern.
         # Feature branches use the plan role only — no apply from PR branches.
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = [
-            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
-            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/dev",
-            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/staging",
-            "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/prod",
-          ]
+          "token.actions.githubusercontent.com:sub" = flatten([
+            for repo in var.allowed_repos : [
+              "repo:${var.github_org}/${repo}:ref:refs/heads/${var.apply_branch_pattern}",
+              "repo:${var.github_org}/${repo}:ref:refs/heads/dev",
+              "repo:${var.github_org}/${repo}:ref:refs/heads/staging",
+              "repo:${var.github_org}/${repo}:ref:refs/heads/prod",
+            ]
+          ])
         }
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"

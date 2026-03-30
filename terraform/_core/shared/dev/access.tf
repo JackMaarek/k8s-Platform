@@ -16,12 +16,13 @@
 module "github_oidc" {
   source = "../../modules/aws/github-oidc"
 
-  cluster_name = var.cluster_name
-  github_org   = var.github_org
-  github_repo  = var.github_repo
-  aws_region   = var.aws_region
-  state_bucket = "k8s-platform-terraform-state"
-  lock_table   = "k8s-platform-terraform-locks"
+  cluster_name         = var.cluster_name
+  github_org           = var.github_org
+  allowed_repos        = var.allowed_repos
+  apply_branch_pattern = "main"
+  aws_region           = var.aws_region
+  state_bucket         = "k8s-platform-terraform-state-${var.aws_account_id}"
+  lock_table           = "k8s-platform-terraform-locks"
 
   tags = {
     Environment = var.environment

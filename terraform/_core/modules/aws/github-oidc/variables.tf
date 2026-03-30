@@ -8,9 +8,30 @@ variable "github_org" {
   type        = string
 }
 
-variable "github_repo" {
-  description = "GitHub repository name (e.g. k8s-platform)"
+variable "allowed_repos" {
+  description = <<-EOT
+    Explicit list of GitHub repository names (without org prefix) allowed to assume
+    CI roles. Zero-trust: no wildcards, no org-wide trust.
+  EOT
+  type        = list(string)
+  validation {
+    condition     = length(var.allowed_repos) > 0
+    error_message = "allowed_repos must contain at least one repository name."
+  }
+  validation {
+    condition     = !contains(var.allowed_repos, "*")
+    error_message = "Wildcards are not allowed in allowed_repos."
+  }
+}
+
+variable "apply_branch_pattern" {
+  description = "Branch pattern allowed to trigger terraform apply. Never use bare '*'."
   type        = string
+  default     = "main"
+  validation {
+    condition     = var.apply_branch_pattern != "*"
+    error_message = "apply_branch_pattern must not be a bare wildcard."
+  }
 }
 
 variable "aws_region" {
