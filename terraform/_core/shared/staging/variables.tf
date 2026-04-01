@@ -64,6 +64,11 @@ variable "allowed_repos" {
   type        = list(string)
 }
 
+variable "apply_branch_pattern" {
+  description = "Git branch pattern trusted by the GitHub Actions apply IAM role"
+  type        = string
+}
+
 variable "aws_account_id" {
   description = "AWS account ID for this environment — used to scope the state bucket name."
   type        = string

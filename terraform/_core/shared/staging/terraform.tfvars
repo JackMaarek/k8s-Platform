@@ -12,4 +12,5 @@ log_retention_days = 14
 aws_account_id = "__AWS_ACCOUNT_ID__"
 
 github_org    = "__GITHUB_ORG__"
-allowed_repos = ["__ALLOWED_REPOS__"]
+allowed_repos        = ["__ALLOWED_REPOS__"]
+apply_branch_pattern = "__ENV__"
