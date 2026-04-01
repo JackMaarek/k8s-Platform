@@ -59,8 +59,17 @@ variable "github_org" {
   default     = "PodYourLife"
 }
 
-variable "github_repo" {
-  description = "GitHub repository name — scoped in the OIDC trust policy."
+variable "allowed_repos" {
+  description = "GitHub repository names (without org prefix) allowed to assume CI roles."
+  type        = list(string)
+}
+
+variable "apply_branch_pattern" {
+  description = "Git branch pattern trusted by the GitHub Actions apply IAM role"
   type        = string
-  default     = "k8s-platform"
+}
+
+variable "aws_account_id" {
+  description = "AWS account ID for this environment — used to scope the state bucket name."
+  type        = string
 }

@@ -1,27 +1,48 @@
-# platform.yaml — source of truth for PodYourLife k8s-platform
+# platform.yaml — source of truth for platform component versions and per-env state.
+# Managed by platform-bot: read at every env hydrate, written after every env setup.
 #
-# Versions, region, and enabled flag are per-environment.
-# platform-bot reads this file and propagates values to:
-#   - terraform/_core/shared/<env>/terraform.tfvars   (kubernetes_version)
-#   - terraform/_core/shared/<env>/variables.tf        (kubernetes_version default)
-#   - terraform/_core/modules/aws/eks/variables.tf     (kubernetes_version default)
-#   - scripts/lib/minikube.sh                          (K8S_VERSION)
-#   - argocd/platform/istio/{base,cni,istiod,gateway}.yaml  (targetRevision)
-#   - argocd/platform/**/*.yaml                        (enabled, awsRegion in generators)
-#   - kubernetes/secrets/<env>/secret-store.yaml       (region, generated from template)
+# Two sections:
+#   versions:     certified component versions — global defaults applied to all envs.
+#                 platform-bot reads these to resolve __VERSION__ placeholders
+#                 and to pass --version to helm install (local up).
+#   environments: per-env resolved state — written by platform-bot env setup.
+#                 Serves as hints for subsequent env setup prompts.
+#                 Optional version overrides per env (override the global defaults above).
+
+versions:
+  kubernetes: "1.33"
+  istio: "1.27.1"
+  argocd: "7.8.26"          # consumed by platform-bot local up (helm install), NOT by ArgoCD ApplicationSets
+  prometheus: "82.4.2"
+  loki: "6.53.0"
+  promtail: "6.17.1"
+  kyverno: "3.4.1"
+  external_secrets: "0.10.7"
+  opencost: "1.42.0"
+  cert_manager: "v1.20.0"
+
 environments:
   dev:
-    enabled: true
     region: eu-west-3
-    kubernetes_version: "1.33"
-    istio_version: "1.27.1"
+    account_id: ""
+    cluster_name: ""
+    eso_irsa_role_arn: ""
+    target_revision: dev
+    repo_url: ""
+    # Per-env version overrides (optional) — uncomment to override the global default above.
+    # istio: "1.26.4"
+    # kubernetes: "1.32"
   staging:
-    enabled: false
     region: eu-west-3
-    kubernetes_version: "1.33"
-    istio_version: "1.27.1"
+    account_id: ""
+    cluster_name: ""
+    eso_irsa_role_arn: ""
+    target_revision: staging
+    repo_url: ""
   prod:
-    enabled: false
     region: eu-west-3
-    kubernetes_version: "1.33"
-    istio_version: "1.27.1"
+    account_id: ""
+    cluster_name: ""
+    eso_irsa_role_arn: ""
+    target_revision: prod
+    repo_url: ""

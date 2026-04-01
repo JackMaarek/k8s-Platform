@@ -204,7 +204,7 @@ terraform apply  # ~2 minutes
 
 ## Common operations
 
-**Upgrade Kubernetes version** — update `platform.yaml` at repo root, then run `platform-bot sync`:
+**Upgrade Kubernetes version** — update `versions.kubernetes` in `platform.yaml`, then run `platform-bot env hydrate --env dev` to re-resolve `__KUBERNETES_VERSION__` in terraform.tfvars:
 
 ```bash
 # Manual equivalent:

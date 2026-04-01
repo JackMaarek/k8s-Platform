@@ -40,7 +40,7 @@ worker-1
 This replicates EKS multi-node topology locally so that pod anti-affinity rules
 and topology-spread constraints are exercised before hitting the cloud.
 
-The Kubernetes version is read from `platform.yaml → environments.dev.kubernetes_version`.
+The Kubernetes version is read from `platform.yaml → versions.kubernetes (certified global default, overridable per env)`.
 Kind image: `kindest/node:v<kubernetes_version>.0`.
 
 ---
@@ -65,7 +65,7 @@ platform-bot local down
 
 | Step | What happens |
 |------|-------------|
-| 1 | Validates `platform.yaml` and reads `kubernetes_version` + `istio_version` for the target env |
+| 1 | Reads kubernetes and istio versions from `platform.yaml` versions block (with optional per-env overrides) |
 | 2 | Creates the Kind cluster (skips if already running) |
 | 3 | Switches `kubectl` context to `kind-k8s-platform-local` |
 | 4 | Applies namespace manifests from `kubernetes/namespaces/` |
