@@ -19,6 +19,7 @@ spec:
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+            repoUrl: __REPO_URL__
   template:
     metadata:
       name: 'loki-{{.env}}'
@@ -37,7 +38,7 @@ spec:
             releaseName: loki
             valueFiles:
               - $values/kubernetes/helm/monitoring/loki-values.yaml
-        - repoURL: https://github.com/PodYourLife/k8s-platform.git
+        - repoURL: '{{.repoUrl}}'
           targetRevision: '{{.targetRevision}}'
           ref: values
       destination:

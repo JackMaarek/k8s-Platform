@@ -20,6 +20,7 @@ spec:
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
+            repoUrl: __REPO_URL__
   template:
     metadata:
       name: 'monitoring-servicemonitors-{{.env}}'
@@ -31,7 +32,7 @@ spec:
     spec:
       project: platform
       source:
-        repoURL: https://github.com/PodYourLife/k8s-platform.git
+        repoURL: '{{.repoUrl}}'
         targetRevision: '{{.targetRevision}}'
         path: kubernetes/manifests/monitoring/servicemonitors
       destination:
