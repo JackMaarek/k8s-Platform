@@ -49,6 +49,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: finops
       server: https://kubernetes.default.svc
+    - namespace: ml
+      server: https://kubernetes.default.svc
     - namespace: cert-manager
       server: https://kubernetes.default.svc
     - namespace: vault
