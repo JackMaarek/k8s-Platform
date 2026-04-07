@@ -1,0 +1,40 @@
+# prometheus-ml-scraper.yaml
+# Grants Prometheus the RBAC permissions needed to scrape pods in the ml namespace.
+#
+# kube-prometheus-stack only provisions Role/RoleBinding for the namespaces it
+# manages by default (monitoring, kube-system, default). Without this, any
+# PodMonitor in the ml namespace is silently ignored — no scrape targets, no errors.
+#
+# The ServiceAccount name matches the kube-prometheus-stack default release name.
+# If the release was installed with a different name, update the subject below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-ml-scraper
+  namespace: ml
+  labels:
+    app.kubernetes.io/part-of: kube-prometheus-stack
+    app.kubernetes.io/managed-by: argocd
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-ml-scraper
+  namespace: ml
+  labels:
+    app.kubernetes.io/part-of: kube-prometheus-stack
+    app.kubernetes.io/managed-by: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus-ml-scraper
+subjects:
+  - kind: ServiceAccount
+    # Default ServiceAccount name from kube-prometheus-stack Helm chart.
+    # Matches: fullnameOverride or <release-name>-prometheus.
+    name: kube-prometheus-stack-prometheus
+    namespace: monitoring
