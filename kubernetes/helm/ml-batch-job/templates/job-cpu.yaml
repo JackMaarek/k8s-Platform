@@ -1,3 +1,6 @@
+{{- if ne .Values.workload.kind "Job" }}
+{{- fail (printf "workload.kind '%s' is not supported. Only 'Job' is currently implemented." .Values.workload.kind) }}
+{{- end }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -9,8 +12,11 @@ metadata:
     ml-platform/job-type: cpu-train
     ml-platform/run-id: {{ .Values.job.runId | quote }}
 spec:
+  completions: 1
+  parallelism: 1
   backoffLimit: {{ .Values.cpu.backoffLimit }}
   activeDeadlineSeconds: {{ .Values.cpu.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
   template:
     metadata:
       labels:
@@ -43,7 +49,7 @@ spec:
       {{- end }}
       containers:
         - name: cpu-train
-          image: "{{ .Values.image.cpu.repository }}:{{ .Values.image.cpu.tag }}"
+          image: "{{ required "image.cpu.repository must be set" .Values.image.cpu.repository }}:{{ .Values.image.cpu.tag }}"
           imagePullPolicy: {{ .Values.image.cpu.pullPolicy }}
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}

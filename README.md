@@ -158,7 +158,7 @@ All namespaces are platform-managed — declared in `kubernetes/namespaces/` and
 | `external-secrets` | Secret sync | enabled | restricted |
 | `kyverno` | Policy | enabled | restricted |
 | `finops` | Cost monitoring | disabled | restricted |
-| `ml` | ML batch workloads | enabled (Jobs opt-out via annotation) | restricted |
+| `ml` | ML batch workloads | disabled | restricted |
 | `development` | Product apps dev | enabled | restricted |
 | `staging` | Product apps staging | enabled | restricted |
 | `production` | Product apps prod | enabled | restricted |

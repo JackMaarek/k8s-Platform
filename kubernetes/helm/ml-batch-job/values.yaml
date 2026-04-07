@@ -21,11 +21,12 @@ namespace:
 workload:
   kind: "Job"
 
-# runId is appended to each Job name to allow sequential runs without manually
-# deleting Completed jobs. Kubernetes treats a new name as a new resource.
-# Recommended format: semantic (v1, v2) or date-based (20240101).
+# runId appended to Job name — new name = new resource (no delete needed).
+# ttlSecondsAfterFinished: auto-delete after N seconds once Completed/Failed.
+# Default 7 days for log retention. Set to 0 for immediate cleanup.
 job:
   runId: "v1"
+  ttlSecondsAfterFinished: 604800
 
 # gpu: used exclusively by the GPU extraction job (step 1). Ignored when gpu.enabled is false.
 # cpu: used by the CPU training job (steps 2-N) and the metrics sidecar

@@ -10,10 +10,13 @@ metadata:
     ml-platform/job-type: gpu-extract
     ml-platform/run-id: {{ .Values.job.runId | quote }}
 spec:
+  completions: 1
+  parallelism: 1
   # Do not retry on failure — GPU OOM and CUDA errors are not transient.
   # Investigate logs before re-running with a new runId.
   backoffLimit: {{ .Values.gpu.backoffLimit }}
   activeDeadlineSeconds: {{ .Values.gpu.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
   template:
     metadata:
       labels:
@@ -36,7 +39,7 @@ spec:
         {{- toYaml .Values.gpu.tolerations | nindent 8 }}
       containers:
         - name: gpu-extract
-          image: "{{ .Values.image.gpu.repository }}:{{ .Values.image.gpu.tag }}"
+          image: "{{ required "image.gpu.repository must be set" .Values.image.gpu.repository }}:{{ .Values.image.gpu.tag }}"
           imagePullPolicy: {{ .Values.image.gpu.pullPolicy }}
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
