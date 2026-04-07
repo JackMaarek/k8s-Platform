@@ -8,7 +8,7 @@
 #   - PersistentVolumeClaims for data, checkpoints, cache, results
 #   - ServiceAccount with optional IRSA annotation (AWS S3 access)
 #   - GHCR imagePullSecret via ExternalSecret (ESO)
-#   - ServiceMonitor and Grafana dashboard (enabled via values)
+#   - PodMonitor and Grafana dashboard (enabled via values)
 #
 # A new ML project requires only:
 #   1. kubernetes/helm/values/<app>-<env>.yaml  — project-specific overrides

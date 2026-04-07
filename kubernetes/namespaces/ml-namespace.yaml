@@ -11,18 +11,18 @@
 # separate clients), create ml-<project> namespaces following this same
 # template and update namespace.name in the project values file.
 #
-# Istio injection enabled — even if ML batch Jobs have near-zero inter-pod traffic.
+# Istio injection disabled at namespace level — batch Jobs must reach Completed
+# status cleanly. Even with Istio 1.22+ native sidecar support, disabling
+# injection at namespace scope and opting in at pod level via
+# sidecar.istio.io/inject: "false" is the safer default for Jobs.
 # Zero trust is assured by IRSA (AWS API auth) + ESO (secret injection) +
-# Kyverno registry allowlist (image provenance). Jobs also require clean
-# Completed status — Envoy sidecar does not terminate when the main
-# container exits, which would block the pod indefinitely.
+# Kyverno registry allowlist (image provenance).
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ml
   labels:
     platform.podyourlife.io/domain: ml
-    istio-injection: enabled
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

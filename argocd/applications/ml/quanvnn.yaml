@@ -12,16 +12,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: quanvnn-dev
+  name: quanvnn-__ENV__
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "9"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   labels:
     app.kubernetes.io/name: quanvnn
     app.kubernetes.io/part-of: ml-platform
-    environment: dev
+    environment: __ENV__
 spec:
-  project: ml
+  project: platform
 
   sources:
     # Generic ml-batch-job chart — shared across all ML batch projects.
@@ -34,7 +36,7 @@ spec:
           # Chart defaults — always loaded first.
           - values.yaml
           # QuanvNN dev overrides — loaded second, takes precedence.
-          - $values/kubernetes/helm/values/quanvnn-dev.yaml
+          - $values/kubernetes/helm/values/quanvnn-__ENV__.yaml
 
     # Values reference source — required for the $values alias above.
     - repoURL: __REPO_URL__

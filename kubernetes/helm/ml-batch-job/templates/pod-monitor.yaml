@@ -1,4 +1,4 @@
-{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+{{- if and .Values.metrics.enabled .Values.metrics.podMonitor.enabled }}
 ---
 # PodMonitor — single resource for Prometheus target discovery on ML Jobs.
 #
@@ -29,5 +29,5 @@ spec:
   podMetricsEndpoints:
     - port: metrics
       path: /metrics
-      interval: {{ .Values.metrics.serviceMonitor.scrapeInterval }}
+      interval: {{ .Values.metrics.podMonitor.scrapeInterval }}
 {{- end }}

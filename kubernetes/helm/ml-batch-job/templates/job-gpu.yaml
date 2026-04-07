@@ -53,7 +53,8 @@ spec:
           volumeMounts:
             {{- range .Values.persistentVolumes }}
             - name: {{ .name }}
-              mountPath: /{{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
             {{- end }}
       volumes:
         {{- range .Values.persistentVolumes }}

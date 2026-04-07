@@ -59,7 +59,8 @@ spec:
           volumeMounts:
             {{- range .Values.persistentVolumes }}
             - name: {{ .name }}
-              mountPath: /{{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
             {{- end }}
         {{- if .Values.metrics.enabled }}
         # Prometheus metrics sidecar — exposes training metrics on /metrics.
@@ -79,7 +80,8 @@ spec:
           volumeMounts:
             {{- range .Values.persistentVolumes }}
             - name: {{ .name }}
-              mountPath: /{{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
             {{- end }}
         {{- end }}
       volumes:

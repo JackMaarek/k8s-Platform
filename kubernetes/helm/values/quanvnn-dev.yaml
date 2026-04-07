@@ -14,6 +14,8 @@
 # NAMING
 # ─────────────────────────────────────────────────────────────────────────────
 nameOverride: "quanvnn"
+workload:
+  kind: Job
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NAMESPACE
@@ -66,12 +68,18 @@ persistentVolumes:
   - name: data
     storage: "20Gi"
     accessMode: ReadWriteOnce
+    mountPath: /data/dubai_data
+    readOnly: true
   - name: checkpoints
     storage: "10Gi"
     accessMode: ReadWriteOnce
+    mountPath: /data/quanv_ckpt
+    readOnly: true
   - name: results
     storage: "10Gi"
     accessMode: ReadWriteOnce
+    mountPath: /app/fusion_qnn/results
+    readOnly: false
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGMAP — ENV VARS
@@ -88,7 +96,7 @@ config:
 # GPU JOB — QUANTUM FEATURE EXTRACTION (STEP 1)
 # ─────────────────────────────────────────────────────────────────────────────
 gpu:
-  enabled: true
+  enabled: false
   # QuanvNN entrypoint args for quantum convolution extraction step.
   args:
     - "--dataset-dir"
@@ -158,7 +166,7 @@ metrics:
     requests:
       cpu: "50m"
       memory: "64Mi"
-  serviceMonitor:
+  podMonitor:
     enabled: true
     scrapeInterval: "30s"
   grafanaDashboard:
