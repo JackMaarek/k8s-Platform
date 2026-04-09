@@ -10,6 +10,12 @@
 name: terraform · core/shared
 
 on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
   push:
     branches: [dev, staging, prod]
     paths:
@@ -36,8 +42,12 @@ jobs:
     steps:
       - id: resolve
         run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          echo "env=${BRANCH}" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${{ github.head_ref || github.ref_name }}"
+            echo "env=${BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
 
   # ── Lint — always run on any change ───────────────────────────────────────
   lint:
@@ -128,7 +138,7 @@ jobs:
     name: apply · ${{ needs.resolve-env.outputs.env }}
     runs-on: ubuntu-latest
     needs: [resolve-env, plan]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     environment: ${{ needs.resolve-env.outputs.env }}
     permissions:
       id-token: write

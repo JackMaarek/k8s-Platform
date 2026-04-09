@@ -2,23 +2,30 @@
 # CI pipeline for domains/organization — IAM Identity Center bootstrap.
 #
 # This root runs once and covers all account assignments (dev, staging, prod).
-# It is deployed from the dev branch — no per-env matrix needed.
+# It is a one-shot bootstrap domain — never applied automatically on push.
 #
 # Trigger model:
-#   push on dev → plan + apply
-#   pull_request targeting dev → plan + comment on PR
+#   workflow_dispatch → plan or apply (operator-triggered, explicit action choice)
+#                       apply requires manual approval via GitHub Environment "org"
+#   pull_request targeting main → plan + comment on PR (no apply)
+#
+# Role separation:
+#   plan  → AWS_ORG_TERRAFORM_PLAN_ROLE_ARN  (read-only)
+#   apply → AWS_ORG_TERRAFORM_APPLY_ROLE_ARN (write, gated by "org" environment)
 
 name: terraform · domains/organization
 
 on:
-  push:
-    branches: [dev]
-    paths:
-      - "terraform/domains/organization/**"
-      - "terraform/_core/modules/aws/identity-center-bootstrap/**"
-      - "terraform/_core/modules/aws/identity-center-assignment/**"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan | apply — apply modifies IAM Identity Center for ALL environments"
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply]
   pull_request:
-    branches: [dev]
+    branches: [main]
     paths:
       - "terraform/domains/organization/**"
       - "terraform/_core/modules/aws/identity-center-bootstrap/**"
@@ -60,20 +67,33 @@ jobs:
           tflint --config $GITHUB_WORKSPACE/terraform/_ci/.tflint.hcl \
                  --chdir terraform/domains/organization
 
-  plan:
-    name: plan · organization
+  plan-or-apply:
+    name: plan-or-apply · organization
     runs-on: ubuntu-latest
     needs: lint
     permissions:
       id-token: write
       contents: read
       pull-requests: write
+    environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') && 'org' || '' }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: resolve action
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "action=plan" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=${{ github.event.inputs.action }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_PLAN_ROLE_ARN }}
+          role-to-assume: >-
+            ${{ steps.resolve.outputs.action == 'apply'
+                && secrets.AWS_ORG_TERRAFORM_APPLY_ROLE_ARN
+                || secrets.AWS_ORG_TERRAFORM_PLAN_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: hashicorp/setup-terraform@v3
@@ -89,6 +109,7 @@ jobs:
         run: terraform validate -no-color
 
       - name: terraform plan
+        if: steps.resolve.outputs.action == 'plan'
         id: plan
         working-directory: terraform/domains/organization
         run: terraform plan -no-color -out=tfplan
@@ -109,31 +130,7 @@ jobs:
               body: output
             });
 
-  apply:
-    name: apply · organization
-    runs-on: ubuntu-latest
-    needs: plan
-    if: github.event_name == 'push'
-    environment: dev
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: terraform init
-        working-directory: terraform/domains/organization
-        run: terraform init -no-color
-
       - name: terraform apply
+        if: steps.resolve.outputs.action == 'apply'
         working-directory: terraform/domains/organization
         run: terraform apply -auto-approve -no-color

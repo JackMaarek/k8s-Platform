@@ -2,13 +2,19 @@
 # Copy to terraform.tfvars and fill in values.
 # terraform.tfvars is gitignored — this file is safe to commit.
 #
+# Tokens below are resolved by `platform-bot bootstrap org`, NOT by `env setup`.
+# __AWS_ACCOUNT_ID_ORG__         = management/organization account ID
+# __AWS_ACCOUNT_ID_DEV_ENV__     = dev workload account ID
+# __AWS_ACCOUNT_ID_STAGING_ENV__ = staging workload account ID
+# __AWS_ACCOUNT_ID_PROD_ENV__    = prod workload account ID
+#
 # Single-account setup: set all four account IDs to the same value.
 # Multi-account setup:  each variable holds a distinct AWS account ID.
 
 aws_region            = "__AWS_REGION__"
 cluster_name          = "__CLUSTER_NAME__"
-management_account_id = "__AWS_ACCOUNT_ID__"
+management_account_id = "__AWS_ACCOUNT_ID_ORG__"
 
-dev_account_id     = "__AWS_ACCOUNT_ID_DEV__"
-staging_account_id = "__AWS_ACCOUNT_ID_STAGING__"
-prod_account_id    = "__AWS_ACCOUNT_ID_PROD__"
+dev_account_id     = "__AWS_ACCOUNT_ID_DEV_ENV__"
+staging_account_id = "__AWS_ACCOUNT_ID_STAGING_ENV__"
+prod_account_id    = "__AWS_ACCOUNT_ID_PROD_ENV__"
