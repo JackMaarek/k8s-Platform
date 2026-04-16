@@ -38,6 +38,29 @@ resource "aws_iam_role_policy_attachment" "terraform_plan_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
+# terraform plan must acquire the DynamoDB state lock (PutItem/DeleteItem)
+# and read the S3 state object. ReadOnlyAccess covers the S3 read path but
+# not the DynamoDB write path, so grant only the lock-table actions here.
+resource "aws_iam_role_policy" "terraform_plan_state_lock" {
+  name = "${var.cluster_name}-terraform-plan-state-lock"
+  role = aws_iam_role.terraform_plan.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "StateLock"
+      Effect = "Allow"
+      Action = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+      ]
+      Resource = "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.lock_table}"
+    }]
+  })
+}
+
 # ── Terraform apply role — env branches + main ───────────────────────────────
 # Scoped to env branches (dev, staging, prod) and main.
 # plan role covers all branches (*) — apply role is restricted to named branches.
