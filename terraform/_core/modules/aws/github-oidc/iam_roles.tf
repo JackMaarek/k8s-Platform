@@ -56,6 +56,11 @@ resource "aws_iam_role" "terraform_apply" {
       Condition = {
         # Allow apply from env branches (dev, staging, prod) and the apply branch pattern.
         # Feature branches use the plan role only — no apply from PR branches.
+        #
+        # Both `ref:refs/heads/<branch>` and `environment:<name>` subjects are
+        # accepted because the CI apply job runs under `environment: <env>` —
+        # GitHub overrides the sub claim to `environment:<name>` in that case
+        # (push/workflow_dispatch outside an environment keeps the ref form).
         StringLike = {
           "token.actions.githubusercontent.com:sub" = flatten([
             for repo in var.allowed_repos : [
@@ -63,6 +68,9 @@ resource "aws_iam_role" "terraform_apply" {
               "repo:${var.github_org}/${repo}:ref:refs/heads/dev",
               "repo:${var.github_org}/${repo}:ref:refs/heads/staging",
               "repo:${var.github_org}/${repo}:ref:refs/heads/prod",
+              "repo:${var.github_org}/${repo}:environment:dev",
+              "repo:${var.github_org}/${repo}:environment:staging",
+              "repo:${var.github_org}/${repo}:environment:prod",
             ]
           ])
         }
