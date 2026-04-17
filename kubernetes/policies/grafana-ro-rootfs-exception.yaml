@@ -1,0 +1,25 @@
+# grafana-ro-rootfs-exception.yaml
+# PolicyException: Grafana writes to /tmp for session data and plugin cache.
+# emptyDir is mounted at /tmp in grafana-values.yaml — this exception allows
+# the container to start without readOnlyRootFilesystem on those paths.
+apiVersion: kyverno.io/v2
+kind: PolicyException
+metadata:
+  name: grafana-ro-rootfs-exception
+  namespace: monitoring
+spec:
+  exceptions:
+    - policyName: require-ro-rootfs
+      ruleNames:
+        - require-read-only-root-filesystem
+        - autogen-require-read-only-root-filesystem
+  match:
+    any:
+      - resources:
+          kinds:
+            - Pod
+            - Deployment
+          namespaces:
+            - monitoring
+          names:
+            - "*grafana*"
