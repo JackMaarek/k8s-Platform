@@ -49,6 +49,16 @@ variable "lock_table" {
   type        = string
 }
 
+variable "environment" {
+  description = "Environment name (dev, staging, prod) — used to scope OIDC trust subjects"
+  type        = string
+}
+
+variable "aws_account_id" {
+  description = "AWS account ID — used in IAM policy resource ARNs for DynamoDB lock table"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags applied to all resources"
   type        = map(string)

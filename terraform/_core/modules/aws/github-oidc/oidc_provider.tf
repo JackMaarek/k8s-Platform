@@ -8,8 +8,6 @@
 # Trust is scoped to a specific GitHub org/repo to prevent other repos
 # from assuming the role.
 
-data "aws_caller_identity" "current" {}
-
 data "tls_certificate" "github" {
   url = "https://token.actions.githubusercontent.com"
 }

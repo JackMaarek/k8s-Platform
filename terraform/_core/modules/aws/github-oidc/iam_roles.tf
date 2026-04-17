@@ -19,9 +19,14 @@ resource "aws_iam_role" "terraform_plan" {
       }
       Condition = {
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = [
-            for repo in var.allowed_repos : "repo:${var.github_org}/${repo}:*"
-          ]
+          "token.actions.githubusercontent.com:sub" = flatten([
+            for repo in var.allowed_repos : [
+              "repo:${var.github_org}/${repo}:ref:refs/heads/${var.environment}",
+              "repo:${var.github_org}/${repo}:environment:${var.environment}",
+              "repo:${var.github_org}/${repo}:ref:refs/heads/main",
+              "repo:${var.github_org}/${repo}:pull_request",
+            ]
+          ])
         }
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
@@ -56,14 +61,14 @@ resource "aws_iam_role_policy" "terraform_plan_state_lock" {
         "dynamodb:DeleteItem",
         "dynamodb:DescribeTable",
       ]
-      Resource = "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.lock_table}"
+      Resource = "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${var.lock_table}"
     }]
   })
 }
 
 # ── Terraform apply role — env branches + main ───────────────────────────────
 # Scoped to env branches (dev, staging, prod) and main.
-# plan role covers all branches (*) — apply role is restricted to named branches.
+# plan role covers env branch, main, and PRs — apply role is restricted to named branches.
 
 resource "aws_iam_role" "terraform_apply" {
   name = "${var.cluster_name}-github-terraform-apply"
@@ -130,7 +135,7 @@ resource "aws_iam_policy" "terraform_apply" {
         Resource = [
           "arn:aws:s3:::${var.state_bucket}",
           "arn:aws:s3:::${var.state_bucket}/*",
-          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.lock_table}",
+          "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${var.lock_table}",
         ]
       },
       {
