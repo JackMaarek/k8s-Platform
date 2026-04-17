@@ -1,0 +1,37 @@
+# disable-sa-token-automount.yaml
+# Mutating policy: sets automountServiceAccountToken to false when not explicitly set.
+# Uses +(field) conditional patch — only applies if the field is absent,
+# respecting workloads that explicitly declare automountServiceAccountToken: true.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disable-automount-sa-token
+  annotations:
+    policies.kyverno.io/title: Disable SA Token Automount
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Service account tokens are mounted by default into all pods. Most workloads
+      do not need API server access. This policy disables automount unless the
+      workload explicitly opts in.
+spec:
+  rules:
+    - name: disable-automount
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        resources:
+          namespaces:
+            - kube-system
+            - istio-system
+            - istio-ingress
+            - cert-manager
+            - argocd
+            - kyverno
+      mutate:
+        patchStrategicMerge:
+          spec:
+            +(automountServiceAccountToken): false
