@@ -5,7 +5,7 @@
 #
 # OpenCost scrapes Prometheus for resource usage and exposes cost metrics
 # per namespace, deployment, pod and container. GPU node costs are tracked
-# via the AWS pricing integration (cloud provider: aws, region: eu-west-3).
+# via the AWS pricing integration (cloud provider: aws, region per env).
 #
 # UI available at http://localhost:9090 (kubectl port-forward) or via Ingress.
 apiVersion: argoproj.io/v1alpha1

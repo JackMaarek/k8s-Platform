@@ -3,7 +3,7 @@
 # Docs: https://www.opencost.io/docs/configuration
 #
 # Design decisions:
-#   - Cloud provider set to AWS / eu-west-3 for accurate on-demand pricing
+#   - Cloud provider set to AWS for accurate on-demand pricing
 #   - Prometheus endpoint points to the in-cluster kube-prometheus-stack instance
 #   - UI enabled with ClusterIP — access via kubectl port-forward or Istio VirtualService
 #   - Istio sidecar injection disabled on finops namespace — istio-init incompatible with PSS restricted
@@ -23,7 +23,7 @@ opencost:
     # AWS cloud integration — enables instance-type-aware pricing
     aws:
       # Region used for AWS pricing API lookups
-      region: eu-west-3
+      region: __AWS_REGION__
 
     # Resource requests/limits — OpenCost is lightweight
     resources:
