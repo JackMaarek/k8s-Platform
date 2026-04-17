@@ -1,0 +1,18 @@
+# Default StorageClass — gp3 via AWS EBS CSI driver
+# Applied at namespace wave (-3) by the namespaces ApplicationSet.
+# gp3 is the modern EBS volume type — 20% cheaper than gp2, 3000 IOPS baseline.
+# The legacy gp2 StorageClass (kubernetes.io/aws-ebs provisioner) is NOT removed
+# to avoid breaking existing PVCs, but is no longer default.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"
