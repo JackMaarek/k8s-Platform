@@ -21,6 +21,8 @@ module "github_oidc" {
   allowed_repos        = var.allowed_repos
   apply_branch_pattern = var.apply_branch_pattern
   aws_region           = var.aws_region
+  aws_account_id       = var.aws_account_id
+  environment          = var.environment
   state_bucket         = "k8s-platform-terraform-state-${var.aws_account_id}"
   lock_table           = "k8s-platform-terraform-locks"
 
