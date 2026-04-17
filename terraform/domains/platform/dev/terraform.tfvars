@@ -8,9 +8,9 @@ node_groups = {
   standard = {
     instance_types = ["t3.medium"]
     capacity_type  = "SPOT"
-    desired_size   = 2
-    max_size       = 4
-    min_size       = 1
+    desired_size   = 4
+    max_size       = 5
+    min_size       = 2
     disk_size      = 30
     labels         = { "node-group" = "standard" }
     taints         = []
