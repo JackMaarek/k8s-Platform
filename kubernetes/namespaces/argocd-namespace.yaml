@@ -9,14 +9,17 @@
 #
 # Istio injection disabled — ArgoCD components must not get sidecars:
 # the argocd-server and repo-server handle git+helm traffic that must
-# not be intercepted by Envoy at bootstrap time.
+# not be intercepted by Envoy at bootstrap time. It also avoids the
+# PSS `restricted` vs `istio-init` NET_ADMIN conflict that blocks pod
+# creation: with injection=enabled the mutating webhook adds istio-init
+# which requires capabilities restricted profile forbids.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: argocd
   labels:
     platform.podyourlife.io/domain: gitops
-    istio-injection: enabled
+    istio-injection: disabled
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
