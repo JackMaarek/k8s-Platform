@@ -1,0 +1,38 @@
+# disallow-host-namespaces.yaml
+# Prevents pods from using host PID, IPC, or network namespaces.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-namespaces
+  annotations:
+    policies.kyverno.io/title: Disallow Host Namespaces
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Host namespaces (hostPID, hostIPC, hostNetwork) allow containers to access
+      host-level resources. This policy prevents their use.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: host-namespaces
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        resources:
+          namespaces:
+            - kube-system
+            - istio-system
+            - istio-ingress
+            - cert-manager
+            - argocd
+      validate:
+        message: "spec.hostNetwork, spec.hostIPC, spec.hostPID must be false."
+        pattern:
+          spec:
+            =(hostPID): "false"
+            =(hostIPC): "false"
+            =(hostNetwork): "false"

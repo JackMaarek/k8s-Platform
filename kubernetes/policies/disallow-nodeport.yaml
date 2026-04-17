@@ -1,0 +1,37 @@
+# disallow-nodeport.yaml
+# Prevents creation of NodePort services — all external access goes through
+# the Istio ingress gateway.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-nodeport
+  annotations:
+    policies.kyverno.io/title: Disallow NodePort Services
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      NodePort services expose a port on every node and bypass the ingress
+      gateway. Use ClusterIP with Istio VirtualService instead.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: deny-nodeport
+      match:
+        any:
+          - resources:
+              kinds:
+                - Service
+      exclude:
+        resources:
+          namespaces:
+            - kube-system
+            - istio-system
+            - istio-ingress
+            - cert-manager
+            - argocd
+      validate:
+        message: "NodePort services are not allowed. Use ClusterIP with Istio ingress."
+        pattern:
+          spec:
+            =(type): "!NodePort"

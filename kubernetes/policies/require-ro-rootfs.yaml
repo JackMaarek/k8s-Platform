@@ -1,0 +1,40 @@
+# require-ro-rootfs.yaml
+# Requires readOnlyRootFilesystem: true on all containers.
+# Exceptions documented via PolicyException (e.g. grafana writes to /tmp).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-ro-rootfs
+  annotations:
+    policies.kyverno.io/title: Require Read-Only Root Filesystem
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      A read-only root filesystem prevents containers from writing to the
+      overlay layer. Workloads that need writable paths must use emptyDir
+      or tmpfs mounts and declare a PolicyException.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-read-only-root-filesystem
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        resources:
+          namespaces:
+            - kube-system
+            - istio-system
+            - istio-ingress
+            - cert-manager
+            - argocd
+      validate:
+        message: "Root filesystem must be read-only. Set readOnlyRootFilesystem to true."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  readOnlyRootFilesystem: true
