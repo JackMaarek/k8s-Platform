@@ -29,6 +29,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "Running as root is not allowed. Set runAsNonRoot to true."
         anyPattern:

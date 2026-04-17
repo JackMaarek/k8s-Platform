@@ -29,6 +29,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "An image tag is required."
         pattern:
@@ -49,6 +53,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "Using 'latest' tag is not allowed."
         pattern:

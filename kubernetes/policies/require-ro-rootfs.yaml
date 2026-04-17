@@ -31,6 +31,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "Root filesystem must be read-only. Set readOnlyRootFilesystem to true."
         pattern:

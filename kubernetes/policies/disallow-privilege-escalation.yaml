@@ -29,6 +29,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "Privilege escalation is not allowed. Set allowPrivilegeEscalation to false."
         pattern:

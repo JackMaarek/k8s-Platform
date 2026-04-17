@@ -30,6 +30,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "NodePort services are not allowed. Use ClusterIP with Istio ingress."
         pattern:

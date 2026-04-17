@@ -29,6 +29,10 @@ spec:
             - istio-ingress
             - cert-manager
             - argocd
+            - monitoring
+            - kyverno
+            - external-secrets
+            - finops
       validate:
         message: "spec.hostNetwork, spec.hostIPC, spec.hostPID must be false."
         pattern:
