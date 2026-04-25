@@ -78,7 +78,7 @@ persistentVolumes:
   - name: results
     storage: "10Gi"
     accessMode: ReadWriteOnce
-    mountPath: /app/fusion_qnn/results
+    mountPath: /app/output/fusion
     readOnly: false
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -87,22 +87,24 @@ persistentVolumes:
 # CLI flags consumed by the QuanvNN entrypoint.
 # Do NOT add secrets here — use ExternalSecret for AWS credentials.
 config:
-  DATASET_DIR: "/data"
-  QUANV_CHECKPOINT_DIR: "/checkpoints"
-  OUTPUT_DIR: "/results"
   QUANV_CONFIG: "basic_silhouette"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GPU JOB — QUANTUM FEATURE EXTRACTION (STEP 1)
 # ─────────────────────────────────────────────────────────────────────────────
 gpu:
-  enabled: false
+  enabled: true
   # QuanvNN entrypoint args for quantum convolution extraction step.
   args:
+    - "--skip-calibrate"
+    - "--skip-train"
+    - "--skip-evaluate"
     - "--dataset-dir"
-    - "/data"
+    - "/data/dubai_data/Dubai256"
+    - "--quanv-checkpoint-dir"
+    - "/data/quanv_ckpt"
     - "--output-dir"
-    - "/checkpoints"
+    - "/app/output/fusion"
   resources:
     limits:
       nvidia.com/gpu: "1"
@@ -129,12 +131,13 @@ gpu:
 cpu:
   # QuanvNN entrypoint args for classical training steps.
   args:
+    - "--skip-extract"
     - "--dataset-dir"
-    - "/data"
+    - "/data/dubai_data/Dubai256"
     - "--quanv-checkpoint-dir"
-    - "/checkpoints"
+    - "/data/quanv_ckpt"
     - "--output-dir"
-    - "/results"
+    - "/app/output/fusion"
   resources:
     limits:
       cpu: "4"
