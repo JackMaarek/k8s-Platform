@@ -23,7 +23,7 @@ metadata:
     app.kubernetes.io/part-of: ml-platform
     environment: __ENV__
 spec:
-  project: platform
+  project: ml
 
   sources:
     # Generic ml-batch-job chart — shared across all ML batch projects.
@@ -65,10 +65,15 @@ spec:
 
   # Completed Jobs are intentionally retained for log inspection.
   # ArgoCD health check ignores Completed Jobs — not treated as degraded.
+  # Pod controller-uid label is set by kubelet at runtime — must be ignored.
   ignoreDifferences:
     - group: batch
       kind: Job
       jsonPointers:
         - /status
+    - group: ""
+      kind: Pod
+      jsonPointers:
+        - /metadata/labels/controller-uid
 
   revisionHistoryLimit: 5
