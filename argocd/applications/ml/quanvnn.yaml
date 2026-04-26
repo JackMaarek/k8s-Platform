@@ -75,5 +75,6 @@ spec:
       kind: Pod
       jsonPointers:
         - /metadata/labels/controller-uid
+        - /metadata/labels/batch.kubernetes.io~1controller-uid
 
   revisionHistoryLimit: 5
