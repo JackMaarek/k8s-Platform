@@ -16,11 +16,6 @@ output "node_group_arns" {
   value       = { for k, v in module.node_groups : k => v.node_group_arn }
 }
 
-output "quanvnn_datasets_bucket_arn" {
-  description = "ARN of the QuanvNN datasets S3 bucket"
-  value       = aws_s3_bucket.quanvnn_datasets.arn
-}
-
 output "quanvnn_datasets_bucket_name" {
   description = "Name of the QuanvNN datasets S3 bucket"
   value       = aws_s3_bucket.quanvnn_datasets.bucket
