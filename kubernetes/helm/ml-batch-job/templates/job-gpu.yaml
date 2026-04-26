@@ -1,0 +1,68 @@
+{{- if .Values.gpu.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "ml-batch-job.gpuJobName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "ml-batch-job.labels" . | nindent 4 }}
+    ml-platform/job-type: gpu-extract
+    ml-platform/run-id: {{ .Values.job.runId | quote }}
+spec:
+  completions: 1
+  parallelism: 1
+  # Do not retry on failure — GPU OOM and CUDA errors are not transient.
+  # Investigate logs before re-running with a new runId.
+  backoffLimit: {{ .Values.gpu.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.gpu.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "ml-batch-job.selectorLabels" . | nindent 8 }}
+        ml-platform/job-type: gpu-extract
+        ml-platform/run-id: {{ .Values.job.runId | quote }}
+      # Istio 1.27+ injects the proxy as a native sidecar (initContainer
+      # with restartPolicy: Always). The pod transitions to Completed
+      # cleanly when the main container exits — no annotation override needed.
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "ml-batch-job.serviceAccountName" . }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.secretName }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.gpu.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.gpu.tolerations | nindent 8 }}
+      containers:
+        - name: gpu-extract
+          image: "{{ required "image.gpu.repository must be set" .Values.image.gpu.repository }}:{{ .Values.image.gpu.tag }}"
+          imagePullPolicy: {{ .Values.image.gpu.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- if .Values.gpu.args }}
+          args:
+            {{- toYaml .Values.gpu.args | nindent 12 }}
+          {{- end }}
+          # All config keys from the ConfigMap are injected as env vars.
+          envFrom:
+            - configMapRef:
+                name: {{ include "ml-batch-job.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.gpu.resources | nindent 12 }}
+          volumeMounts:
+            {{- range .Values.persistentVolumes }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
+            {{- end }}
+      volumes:
+        {{- range .Values.persistentVolumes }}
+        - name: {{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ include "ml-batch-job.fullname" $ }}-{{ .name }}
+        {{- end }}
+{{- end }}

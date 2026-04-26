@@ -1,0 +1,177 @@
+# quanvnn-dev.yaml
+# QuanvNN ML batch pipeline — dev environment values.
+#
+# Overrides for the ml-batch-job generic chart.
+# Only values that differ from chart defaults are specified here.
+#
+# Chart defaults: kubernetes/helm/ml-batch-job/values.yaml
+# ArgoCD Application: argocd/applications/ml/quanvnn.yaml
+#
+# Run trigger: increment job.runId to start a new pipeline run.
+# Both jobs (extract + train) will be recreated with the new name.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NAMING
+# ─────────────────────────────────────────────────────────────────────────────
+nameOverride: "quanvnn"
+workload:
+  kind: Job
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NAMESPACE
+# ─────────────────────────────────────────────────────────────────────────────
+namespace:
+  name: ml
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB RUN CONTROL
+# ─────────────────────────────────────────────────────────────────────────────
+# Increment runId to trigger a new pipeline run.
+# Previous Completed jobs are retained for log inspection.
+job:
+  runId: "v1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IMAGES
+# ─────────────────────────────────────────────────────────────────────────────
+image:
+  gpu:
+    repository: ghcr.io/podyourlife/quanvnn
+    tag: "gpu-v0.1.0"
+    pullPolicy: Always
+  cpu:
+    repository: ghcr.io/podyourlife/quanvnn
+    tag: "cpu-v0.1.0"
+    pullPolicy: Always
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IMAGE PULL SECRET
+# ─────────────────────────────────────────────────────────────────────────────
+imagePullSecret:
+  enabled: true
+  secretName: ghcr-pull-secret
+  awsSecretPath: "platform/ghcr-pull-token"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SERVICE ACCOUNT + IRSA
+# ─────────────────────────────────────────────────────────────────────────────
+# IRSA Role ARN provisioned by terraform/domains/platform — grants S3 access.
+# Replace __IRSA_ROLE_ARN__ with the actual ARN at init time (platform-bot).
+serviceAccount:
+  irsaRoleArn: "__IRSA_ROLE_ARN__"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STORAGE
+# ─────────────────────────────────────────────────────────────────────────────
+# Four PVCs — sized for CIFAR-10 dataset + quantum feature maps + results.
+persistentVolumes:
+  - name: data
+    storage: "20Gi"
+    accessMode: ReadWriteOnce
+    mountPath: /data/dubai_data
+    readOnly: true
+  - name: checkpoints
+    storage: "10Gi"
+    accessMode: ReadWriteOnce
+    mountPath: /data/quanv_ckpt
+    readOnly: true
+  - name: results
+    storage: "10Gi"
+    accessMode: ReadWriteOnce
+    mountPath: /app/output/fusion
+    readOnly: false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGMAP — ENV VARS
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI flags consumed by the QuanvNN entrypoint.
+# Do NOT add secrets here — use ExternalSecret for AWS credentials.
+config:
+  QUANV_CONFIG: "basic_silhouette"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GPU JOB — QUANTUM FEATURE EXTRACTION (STEP 1)
+# ─────────────────────────────────────────────────────────────────────────────
+gpu:
+  enabled: true
+  # QuanvNN entrypoint args for quantum convolution extraction step.
+  args:
+    - "--skip-calibrate"
+    - "--skip-train"
+    - "--skip-evaluate"
+    - "--dataset-dir"
+    - "/data/dubai_data/Dubai256"
+    - "--quanv-checkpoint-dir"
+    - "/data/quanv_ckpt"
+    - "--output-dir"
+    - "/app/output/fusion"
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      nvidia.com/gpu: "1"
+      cpu: "2"
+      memory: "8Gi"
+  # GPU node scale-to-zero — Cluster Autoscaler provisions on Job creation.
+  nodeSelector:
+    node-group: gpu
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CPU JOB — CLASSICAL CNN TRAINING (STEPS 2-4)
+# ─────────────────────────────────────────────────────────────────────────────
+cpu:
+  # QuanvNN entrypoint args for classical training steps.
+  args:
+    - "--skip-extract"
+    - "--dataset-dir"
+    - "/data/dubai_data/Dubai256"
+    - "--quanv-checkpoint-dir"
+    - "/data/quanv_ckpt"
+    - "--output-dir"
+    - "/app/output/fusion"
+  resources:
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+  nodeSelector:
+    node-group: standard
+  backoffLimit: 0
+  # 8h deadline — classical training on CIFAR-10 is bounded.
+  activeDeadlineSeconds: 28800
+
+# ─────────────────────────────────────────────────────────────────────────────
+# METRICS + OBSERVABILITY
+# ─────────────────────────────────────────────────────────────────────────────
+metrics:
+  enabled: true
+  # Sidecar uses the same CPU image — metrics_exporter.py is embedded.
+  image:
+    repository: ghcr.io/podyourlife/quanvnn
+    tag: "cpu-v0.1.0"
+    pullPolicy: Always
+  metricsPort: 8000
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+  podMonitor:
+    enabled: true
+    scrapeInterval: "30s"
+  grafanaDashboard:
+    enabled: true
+    folder: "ML Workloads"

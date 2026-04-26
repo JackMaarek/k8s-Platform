@@ -1,165 +1,155 @@
-# Kubernetes Manifests and Helm Charts
+# kubernetes
+
+Helm charts, raw manifests, and namespace definitions for the k8s-platform.
+
+---
 
 ## Structure
-- **helm/**: Reusable Helm charts for applications
-- **manifests/**: Raw Kubernetes YAML files
-- **namespaces/**: Namespace definitions with labels
 
-## Local Development
-
-### Start Minikube
-```bash
-minikube start \
-  --cpus=4 \
-  --memory=8192 \
-  --disk-size=40g \
-  --driver=docker \
-  --kubernetes-version=v1.28.3 \
-  --addons=metrics-server,ingress
+```
+kubernetes/
+  namespaces/              ← platform-managed namespace declarations
+  helm/
+    sample-app/            ← Helm chart for product apps (Deployment + Service + HPA)
+    ml-batch-job/          ← Helm chart for ML batch pipelines (Job GPU + Job CPU)
+    monitoring/            ← Helm values for the monitoring stack (prometheus, loki, grafana)
+    values/                ← per-app value overrides (one file per app per env)
+  manifests/
+    monitoring/
+      dashboards/          ← Grafana dashboard ConfigMaps (hot-loaded by k8s-sidecar)
+      datasources/         ← Grafana datasource ConfigMaps
+    argocd/
+      servicemonitors/     ← ServiceMonitors for ArgoCD components
+    development/
+      servicemonitors/     ← ServiceMonitors for development namespace apps
+  secrets/                 ← ExternalSecret CRDs (sync from AWS Secrets Manager via ESO)
 ```
 
-### Apply Namespaces
+---
+
+## Namespaces
+
+Namespaces are **platform infrastructure** — never created by application charts or manually.
+All namespace declarations live in `kubernetes/namespaces/` and are managed by the
+`namespaces` ApplicationSet (wave -3).
+
+To add a new namespace:
+1. Create `kubernetes/namespaces/<name>-namespace.yaml` following the existing pattern
+2. Commit — the ApplicationSet picks it up automatically on the next sync
+
+---
+
+## Helm charts
+
+### sample-app
+
+Generic chart for **long-running product applications** (web services, APIs).
+
+- `kind: Deployment` with HPA, PodDisruptionBudget, anti-affinity
+- Configurable probes, resources, ingress, secret injection via ESO
+- ServiceMonitor and Grafana dashboard enabled via values
+
+Usage:
 ```bash
-kubectl apply -f namespaces/base-namespaces.yaml
+# Lint
+helm lint kubernetes/helm/sample-app/
+
+# Render with app-specific values
+helm template my-app kubernetes/helm/sample-app/ \
+  -f kubernetes/helm/values/my-app-dev.yaml
 ```
 
-### Install Helm Charts
+### ml-batch-job
+
+Generic chart for **ML batch pipeline workloads** (training, feature extraction, analysis).
+
+- `kind: Job` — run-to-completion, not long-running
+- Optional GPU extraction job (step 1) + CPU training job (steps 2-N)
+- Optional Prometheus metrics sidecar on the CPU job
+- IRSA-based S3 access via dedicated ServiceAccount
+- PersistentVolumeClaims for data, checkpoints, and results
+
+Trigger model: **manual commit-based**. Increment `job.runId` in the values file to start a new run.
+GPU nodes scale to zero between runs — zero compute cost at rest.
+
+Usage:
 ```bash
-# Install sample application
-helm install sample-app helm/sample-app -n development
+# Lint with project values
+helm lint kubernetes/helm/ml-batch-job/ \
+  -f kubernetes/helm/values/quanvnn-dev.yaml
 
-# Upgrade existing release
-helm upgrade sample-app helm/sample-app -n development
-
-# Uninstall
-helm uninstall sample-app -n development
+# Render full pipeline
+helm template quanvnn kubernetes/helm/ml-batch-job/ \
+  -f kubernetes/helm/values/quanvnn-dev.yaml
 ```
 
-## Helm Chart Development
+See `kubernetes/helm/ml-batch-job/values.yaml` for all available options.
 
-### Creating a New Chart
-```bash
-cd helm/
-helm create my-new-app
+---
+
+## Values files
+
+One file per application per environment: `kubernetes/helm/values/<app>-<env>.yaml`
+
+```
+values/
+  quanvnn-dev.yaml         ← QuanvNN ML pipeline, dev environment
 ```
 
-### Testing Charts
+Only values that differ from the chart defaults need to be specified.
+Chart defaults are documented in `kubernetes/helm/<chart>/values.yaml`.
+
+---
+
+## Raw manifests
+
+Raw manifests in `kubernetes/manifests/` are **static platform components** — they do not
+change per-project and require no templating. Examples: Grafana infrastructure dashboards,
+platform-level ServiceMonitors (ArgoCD, Prometheus, Istio).
+
+Application-level observability (ServiceMonitor, Grafana dashboard) belongs in the Helm chart
+and is enabled via values — not in raw manifests.
+
+---
+
+## Secrets
+
+ExternalSecret resources in `kubernetes/secrets/` declare which secrets to sync from
+AWS Secrets Manager into native Kubernetes Secrets via ESO.
+
 ```bash
-# Lint the chart
-helm lint helm/sample-app
+# Check sync status
+kubectl get externalsecret -A
 
-# Dry-run installation
-helm install sample-app helm/sample-app -n development --dry-run --debug
-
-# Template rendering
-helm template sample-app helm/sample-app
+# Force refresh
+kubectl annotate externalsecret <name> -n <ns> \
+  force-sync=$(date +%s) --overwrite
 ```
 
-## Common Operations
+See `docs/examples/external-secret.yaml` for the pattern.
 
-### Check Cluster Status
+---
+
+## Common operations
+
 ```bash
-kubectl cluster-info
-kubectl get nodes
-kubectl get pods -A
-```
-
-### Namespace Operations
-```bash
-# List all namespaces
-kubectl get namespaces
-
-# View namespace details
-kubectl describe namespace development
-
-# Set default namespace
-kubectl config set-context --current --namespace=development
-```
-
-### Pod Management
-```bash
-# View pods in namespace
-kubectl get pods -n development
-
-# View pod logs
-kubectl logs -n development <pod-name>
-
-# Execute command in pod
-kubectl exec -it -n development <pod-name> -- /bin/sh
-
-# View pod events
-kubectl get events -n development --sort-by='.lastTimestamp'
-```
-
-## Troubleshooting
-
-### Pod Issues
-```bash
-# Check pod status
-kubectl get pods -n development
-
-# Describe pod for events
-kubectl describe pod -n development <pod-name>
-
-# View logs
-kubectl logs -n development <pod-name>
-
-# Previous container logs (if crashed)
-kubectl logs -n development <pod-name> --previous
-```
-
-### Service Issues
-```bash
-# List services
-kubectl get svc -n development
-
-# Test service connectivity
-kubectl run test-pod --image=busybox --rm -it --restart=Never -- wget -O- http://service-name.development.svc.cluster.local
-```
-
-### Resource Issues
-```bash
-# Check resource usage
-kubectl top nodes
-kubectl top pods -n development
-
-# View resource requests/limits
-kubectl describe node minikube
-```
-
-### Helm Troubleshooting
-```bash
-# List releases
+# List all Helm releases across namespaces
 helm list -A
 
-# Get release status
-helm status sample-app -n development
+# Check a specific release
+helm status quanvnn -n ml
 
-# View release history
-helm history sample-app -n development
+# View rendered templates without applying
+helm template quanvnn kubernetes/helm/ml-batch-job/ \
+  -f kubernetes/helm/values/quanvnn-dev.yaml
 
-# Rollback release
-helm rollback sample-app 1 -n development
+# Dry-run apply
+helm template quanvnn kubernetes/helm/ml-batch-job/ \
+  -f kubernetes/helm/values/quanvnn-dev.yaml \
+  | kubectl apply --dry-run=server -f -
+
+# Check pod status across ML namespace
+kubectl get pods -n ml
+kubectl get jobs -n ml
+kubectl get pvc -n ml
 ```
-
-## Best Practices
-
-1. **Always specify namespaces** to avoid accidental operations on default namespace
-2. **Use resource requests and limits** for all workloads
-3. **Implement readiness and liveness probes** for reliability
-4. **Follow security best practices**: run as non-root, drop capabilities
-5. **Use ConfigMaps and Secrets** instead of hardcoded values
-6. **Implement pod anti-affinity** for high availability
-7. **Label all resources** consistently for easy filtering
-
-## Security Considerations
-
-- All namespaces have `istio-injection: enabled` label for automatic sidecar injection
-- Pod Security Standards should be enforced at namespace level
-- Network policies complement Istio authorization policies
-- Secrets should never be committed to Git
-
-## References
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Helm Documentation](https://helm.sh/docs/)
-- [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)

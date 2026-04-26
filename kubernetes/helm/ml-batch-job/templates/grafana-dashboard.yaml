@@ -1,0 +1,112 @@
+{{- if and .Values.metrics.enabled .Values.metrics.grafanaDashboard.enabled }}
+---
+# Dashboard ConfigMap must be in the monitoring namespace — the Grafana
+# k8s-sidecar only scans its own namespace by default. Placing dashboards
+# in the workload namespace (ml) would make them invisible to Grafana.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ml-batch-job.fullname" . }}-dashboard
+  namespace: monitoring
+  labels:
+    {{- include "ml-batch-job.labels" . | nindent 4 }}
+    # grafana_dashboard: "1" is required for the Grafana k8s-sidecar to
+    # discover and hot-load this ConfigMap without restarting Grafana.
+    grafana_dashboard: "1"
+  annotations:
+    # Target folder in the Grafana UI — set via values.
+    k8s-sidecar-target-directory: {{ .Values.metrics.grafanaDashboard.folder | quote }}
+data:
+  {{ include "ml-batch-job.fullname" . }}-dashboard.json: |
+    {
+      "title": {{ printf "%s ML Job" (include "ml-batch-job.fullname" .) | quote }},
+      "uid": {{ include "ml-batch-job.fullname" . | quote }},
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "30s",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Training Loss",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "ml_training_loss{job=~\"{{ include "ml-batch-job.fullname" . }}-train.*\"}",
+              "legendFormat": "loss"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Training Accuracy",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "ml_training_accuracy{job=~\"{{ include "ml-batch-job.fullname" . }}-train.*\"}",
+              "legendFormat": "accuracy"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Current Epoch",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "ml_current_epoch{job=~\"{{ include "ml-batch-job.fullname" . }}-train.*\"}",
+              "legendFormat": "epoch"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Job Status",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+          "targets": [
+            {
+              "expr": "kube_job_status_succeeded{job_name=~\"{{ include "ml-batch-job.fullname" . }}-train.*\", namespace=\"{{ .Values.namespace.name }}\"}",
+              "legendFormat": "succeeded"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Pod CPU Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"{{ .Values.namespace.name }}\", pod=~\"{{ include "ml-batch-job.fullname" . }}-train.*\"}[5m])) by (pod)",
+              "legendFormat": "{{ "{{pod}}" }}"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Pod Memory Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"{{ .Values.namespace.name }}\", pod=~\"{{ include "ml-batch-job.fullname" . }}-train.*\"}) by (pod)",
+              "legendFormat": "{{ "{{pod}}" }}"
+            }
+          ]
+        }
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus"
+          }
+        ]
+      }
+    }
+{{- end }}

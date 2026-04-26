@@ -13,7 +13,7 @@ spec:
   description: "Platform infrastructure — Istio, monitoring, cert-manager, Vault, ESO, namespaces"
 
   sourceRepos:
-    - __REPO_URL__
+    - https://github.com/PodYourLife/k8s-platform.git
     - https://istio-release.storage.googleapis.com/charts
     - https://prometheus-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
@@ -48,6 +48,8 @@ spec:
     - namespace: external-secrets
       server: https://kubernetes.default.svc
     - namespace: finops
+      server: https://kubernetes.default.svc
+    - namespace: ml
       server: https://kubernetes.default.svc
     - namespace: cert-manager
       server: https://kubernetes.default.svc

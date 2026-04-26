@@ -1,0 +1,17 @@
+{{- range .Values.persistentVolumes }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ml-batch-job.fullname" $ }}-{{ .name }}
+  namespace: {{ $.Values.namespace.name }}
+  labels:
+    {{- include "ml-batch-job.labels" $ | nindent 4 }}
+    ml-platform/pvc-role: {{ .name }}
+spec:
+  accessModes:
+    - {{ .accessMode }}
+  resources:
+    requests:
+      storage: {{ .storage }}
+{{- end }}

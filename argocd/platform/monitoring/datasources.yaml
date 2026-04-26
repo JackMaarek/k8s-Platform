@@ -1,10 +1,10 @@
 # argocd/platform/monitoring/datasources.yaml
-# Responsabilité : déployer les ConfigMaps de datasources Grafana.
-# Chaque ConfigMap dans kubernetes/manifests/monitoring/datasources/ déclare
-# une datasource unique — le sidecar k8s-sidecar les hot-load dans Grafana.
+# Deploys Grafana datasource ConfigMaps.
+# Each ConfigMap in kubernetes/manifests/monitoring/datasources/ declares
+# a single datasource — the k8s-sidecar hot-loads them into Grafana without restart.
 #
-# Wave 7 — après prometheus (wave 4) : Grafana doit être Running avant
-# que le sidecar puisse recharger les datasources.
+# Wave 7 — after prometheus (wave 4): Grafana must be Running before
+# the sidecar can reload datasources.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

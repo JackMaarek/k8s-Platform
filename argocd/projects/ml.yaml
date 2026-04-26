@@ -1,0 +1,66 @@
+# ml.yaml
+# AppProject: ml
+# Scope: ML batch workloads — Jobs, PVCs, ServiceAccounts with IRSA
+#
+# Separate from the "applications" project — ML workloads have a distinct
+# security profile: GPU resources, IRSA annotations, large PVCs, batch Jobs.
+# Isolating them prevents dev-team from accidentally modifying ML resources.
+#
+# Destinations: ml namespace (workloads) + monitoring (Grafana dashboards).
+# Evolution path: add ml-<project> namespaces here as new projects onboard.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ml
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "ML batch workloads — training pipelines and feature extraction jobs"
+
+  sourceRepos:
+    - __REPO_URL__
+
+  destinations:
+    - namespace: ml
+      server: https://kubernetes.default.svc
+    # Grafana dashboard ConfigMaps are deployed in monitoring namespace
+    # because the k8s-sidecar only scans its own namespace by default.
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+
+  # ML workloads are namespace-scoped — no cluster-wide resources needed.
+  clusterResourceWhitelist: []
+
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: batch
+      kind: Job
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: monitoring.coreos.com
+      kind: PodMonitor
+
+  orphanedResources:
+    warn: true
+
+  roles:
+    - name: ml-operator
+      description: "Trigger and monitor ML pipeline runs"
+      policies:
+        - p, proj:ml:ml-operator, applications, get, ml/*, allow
+        - p, proj:ml:ml-operator, applications, sync, ml/*, allow
+        - p, proj:ml:ml-operator, applications, override, ml/*, allow
+      groups:
+        - ml-team
+    - name: ml-readonly
+      description: "Read-only access for observability"
+      policies:
+        - p, proj:ml:ml-readonly, applications, get, ml/*, allow
+      groups:
+        - dev-team

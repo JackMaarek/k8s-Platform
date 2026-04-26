@@ -33,7 +33,7 @@ spec:
   project: applications
 
   source:
-    repoURL: __REPO_URL__
+    repoURL: https://github.com/PodYourLife/k8s-platform.git
     targetRevision: main            # pin to a tag for production: v1.2.3
     path: kubernetes/helm/sample-app
     helm:

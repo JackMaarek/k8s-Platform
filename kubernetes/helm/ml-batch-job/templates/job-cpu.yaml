@@ -1,0 +1,98 @@
+{{- if ne .Values.workload.kind "Job" }}
+{{- fail (printf "workload.kind '%s' is not supported. Only 'Job' is currently implemented." .Values.workload.kind) }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "ml-batch-job.cpuJobName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "ml-batch-job.labels" . | nindent 4 }}
+    ml-platform/job-type: cpu-train
+    ml-platform/run-id: {{ .Values.job.runId | quote }}
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: {{ .Values.cpu.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.cpu.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "ml-batch-job.selectorLabels" . | nindent 8 }}
+        ml-platform/job-type: cpu-train
+        ml-platform/run-id: {{ .Values.job.runId | quote }}
+      annotations:
+        {{- if .Values.metrics.enabled }}
+        # Prometheus scrape annotations — used as fallback if PodMonitor
+        # is not available. PodMonitor takes precedence when enabled.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.metrics.metricsPort | quote }}
+        prometheus.io/path: "/metrics"
+        {{- end }}
+      # Istio 1.27+ injects the proxy as a native sidecar (initContainer
+      # with restartPolicy: Always). The pod transitions to Completed
+      # cleanly when the main container exits — no annotation override needed.
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "ml-batch-job.serviceAccountName" . }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.secretName }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.cpu.nodeSelector | nindent 8 }}
+      {{- if .Values.cpu.tolerations }}
+      tolerations:
+        {{- toYaml .Values.cpu.tolerations | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: cpu-train
+          image: "{{ required "image.cpu.repository must be set" .Values.image.cpu.repository }}:{{ .Values.image.cpu.tag }}"
+          imagePullPolicy: {{ .Values.image.cpu.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- if .Values.cpu.args }}
+          args:
+            {{- toYaml .Values.cpu.args | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "ml-batch-job.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.cpu.resources | nindent 12 }}
+          volumeMounts:
+            {{- range .Values.persistentVolumes }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
+            {{- end }}
+        {{- if .Values.metrics.enabled }}
+        # Prometheus metrics sidecar — exposes training metrics on /metrics.
+        # Shares the same PVCs as the main container to read training state
+        # (loss, accuracy, epoch progress) written by the main process.
+        - name: metrics-exporter
+          image: {{ include "ml-batch-job.metricsImage" . }}
+          imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.metricsPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.metrics.resources | nindent 12 }}
+          volumeMounts:
+            {{- range .Values.persistentVolumes }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+              readOnly: {{ .readOnly | default false }}
+            {{- end }}
+        {{- end }}
+      volumes:
+        {{- range .Values.persistentVolumes }}
+        - name: {{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ include "ml-batch-job.fullname" $ }}-{{ .name }}
+        {{- end }}

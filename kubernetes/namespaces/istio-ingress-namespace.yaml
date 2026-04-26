@@ -1,8 +1,13 @@
-# Namespace: istio-system
+# Namespace: istio-ingress
 # Managed by: argocd/platform/namespaces.yaml ApplicationSet (wave -3)
-
-# Istio injection explicitly disabled — circular dependency: istiod cannot
-# depend on a proxy that itself requires istiod to receive its configuration.
+#
+# Dedicated namespace for the Istio ingress gateway (data plane).
+# Separated from istio-system to decouple gateway lifecycle from control plane.
+#
+# istio-injection MUST be enabled here — the gateway Deployment uses
+# image: auto, which is substituted by the MutatingAdmissionWebhook
+# registered by istiod at wave -1. Without injection, image: auto
+# remains literal and the pod fails with ErrImagePull.
 apiVersion: v1
 kind: Namespace
 metadata:

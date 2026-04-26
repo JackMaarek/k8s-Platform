@@ -1,0 +1,200 @@
+# values.yaml
+# Default values for the ml-batch-job Helm chart.
+# All defaults are safe no-ops — nothing is deployed without explicit overrides.
+# Override only what differs in kubernetes/helm/values/<app>-<env>.yaml.
+#
+# Sections: Naming, Namespace, Job run control, Images, Image pull secret,
+#   ServiceAccount+IRSA, Storage (PVCs), ConfigMap, GPU job, CPU job,
+#   Metrics sidecar+observability, Pod security
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Kubernetes namespace where all workload resources are deployed.
+# Must be created as a platform prerequisite — this chart does NOT create namespaces.
+namespace:
+  name: "ml"
+
+# workload.kind declares the intended workload type for this chart.
+# Currently only Job is implemented. Deployment support is planned.
+# Valid values: Job
+workload:
+  kind: "Job"
+
+# runId appended to Job name — new name = new resource (no delete needed).
+# ttlSecondsAfterFinished: auto-delete after N seconds once Completed/Failed.
+# Default 7 days for log retention. Set to 0 for immediate cleanup.
+job:
+  runId: "v1"
+  ttlSecondsAfterFinished: 604800
+
+# gpu: used exclusively by the GPU extraction job (step 1). Ignored when gpu.enabled is false.
+# cpu: used by the CPU training job (steps 2-N) and the metrics sidecar
+#      when metrics.image is not explicitly overridden.
+image:
+  gpu:
+    repository: ""
+    tag: "gpu-latest"
+    pullPolicy: Always
+  cpu:
+    repository: ""
+    tag: "cpu-latest"
+    pullPolicy: Always
+
+# Creates an ExternalSecret that syncs the GHCR pull token from AWS Secrets
+# Manager into a native Kubernetes Secret. ESO must be installed on the cluster.
+imagePullSecret:
+  enabled: true
+  secretName: "ghcr-pull-secret"
+  awsSecretPath: ""
+
+# A dedicated ServiceAccount is always created for isolation.
+# Set irsaRoleArn to enable IRSA — grants the pod AWS API access (e.g. S3)
+# without static credentials. Leave empty to disable AWS API access.
+serviceAccount:
+  name: ""
+  # IAM Role ARN annotated on the ServiceAccount for IRSA.
+  # Format: arn:aws:iam::<account-id>:role/<role-name>
+  irsaRoleArn: ""
+
+# Each entry creates one PersistentVolumeClaim in the workload namespace.
+# PVCs persist across Job runs — data survives pod termination.
+#
+# Fields:
+#   name       : PVC name suffix. Full name: <fullname>-<name>
+#   storage    : requested capacity (Gi)
+#   accessMode : ReadWriteOnce for single-node jobs (standard)
+#                ReadWriteMany for multi-node (requires EFS or similar)
+#   mountPath  : container mount path. Defaults to /<name> when omitted.
+#   readOnly   : mount as read-only. Defaults to false when omitted.
+persistentVolumes:
+  - name: data
+    storage: "10Gi"
+    accessMode: ReadWriteOnce
+  - name: checkpoints
+    storage: "5Gi"
+    accessMode: ReadWriteOnce
+  - name: results
+    storage: "5Gi"
+    accessMode: ReadWriteOnce
+
+# Key-value pairs injected as environment variables into all job containers.
+# Mounted from a ConfigMap — changes require a new Job run (new runId).
+# Do NOT put secrets here. Use ExternalSecret for sensitive values.
+config: {}
+
+# Enables a GPU-accelerated Job that runs before the CPU job.
+# Requires a GPU nodegroup with the nvidia.com/gpu taint in the cluster.
+# The GPU nodegroup scales to zero when idle — Cluster Autoscaler provisions
+# a node on Job creation and releases it after completion.
+gpu:
+  enabled: false
+
+  # CLI arguments passed to the GPU container entrypoint.
+  args: []
+
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      nvidia.com/gpu: "1"
+      cpu: "2"
+      memory: "8Gi"
+
+  # Targets the GPU nodegroup — label set in terraform.tfvars node_groups.gpu.labels
+  nodeSelector:
+    node-group: gpu
+
+  # Must match the taint defined on the GPU nodegroup in terraform.tfvars.
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+
+  # backoffLimit 0 — fail fast, do not retry on GPU OOM or CUDA errors.
+  backoffLimit: 0
+  # Hard deadline in seconds. Job is killed if it exceeds this duration.
+  activeDeadlineSeconds: 3600
+
+# Always enabled. Runs the main training/analysis workload on CPU nodes.
+# The metrics sidecar (section below) is injected into this pod when enabled.
+cpu:
+  # CLI arguments passed to the CPU container entrypoint.
+  args: []
+
+  resources:
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+
+  # Targets standard compute nodes.
+  nodeSelector:
+    node-group: standard
+
+  tolerations: []
+
+  backoffLimit: 0
+  # 24h hard deadline — long-running training jobs may need adjustment.
+  activeDeadlineSeconds: 86400
+
+# Injects a Prometheus metrics sidecar into the CPU job pod.
+# The sidecar exposes training metrics on /metrics at metricsPort.
+#
+# podMonitor  : creates a Prometheus PodMonitor for scraping (no Service needed).
+# grafanaDashboard: creates a ConfigMap hot-loaded by the Grafana sidecar.
+metrics:
+  enabled: false
+
+  # Sidecar image. Defaults to cpu image when repository is empty.
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Port exposed by the sidecar /metrics endpoint.
+  metricsPort: 8000
+
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+
+  podMonitor:
+    enabled: false
+    # Prometheus scrape interval for this workload.
+    scrapeInterval: "30s"
+
+  grafanaDashboard:
+    enabled: false
+    # Grafana UI folder where the dashboard appears.
+    folder: "ML Workloads"
+
+# Follows Kubernetes Pod Security Standards (PSS) restricted profile.
+# Applied to all job pods in this chart.
+#
+# readOnlyRootFilesystem is false — ML jobs write checkpoints to mounted PVCs
+# and need a writable filesystem for temporary files (e.g. pip cache, torch).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000

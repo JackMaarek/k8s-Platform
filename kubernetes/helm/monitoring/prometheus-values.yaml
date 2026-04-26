@@ -1,14 +1,14 @@
 # prometheus-values.yaml
 # Chart: prometheus-community/kube-prometheus-stack
 #
-# Responsabilité : collecte et stockage des métriques.
-# Contient : PrometheusOperator, Prometheus, Alertmanager, exporters, règles d'alerte.
-# Ne contient PAS : configuration Grafana → voir grafana-values.yaml
+# Scope: metrics collection and storage.
+# Contains: PrometheusOperator, Prometheus, Alertmanager, exporters, alert rules.
+# Does NOT contain: Grafana configuration → see grafana-values.yaml
 
 prometheusOperator:
   enabled: true
-  # Les Jobs admission webhook doivent terminer proprement.
-  # Un sidecar Istio bloque la terminaison (le sidecar ne s'arrête jamais seul).
+  # Admission webhook Jobs must terminate cleanly.
+  # An Istio sidecar blocks termination — Envoy never stops on its own.
   admissionWebhooks:
     patch:
       podAnnotations:
@@ -30,12 +30,12 @@ prometheusOperator:
 prometheus:
   enabled: true
   prometheusSpec:
-    # __CLUSTER_NAME__ est remplacé par platform-bot à l'init.
-    # Ce label est injecté sur toutes les métriques pour les vues multi-cluster Grafana.
+    # __CLUSTER_NAME__ is replaced by platform-bot at init time.
+    # This label is injected on all metrics for multi-cluster Grafana views.
     externalLabels:
       cluster: __CLUSTER_NAME__
-    # Découverte automatique des ServiceMonitors et PodMonitors dans tous les namespaces.
-    # Chaque composant déclare son propre ServiceMonitor — pas de liste centrale ici.
+    # Auto-discovers ServiceMonitors and PodMonitors across all namespaces.
+    # Each component declares its own ServiceMonitor — no central list here.
     namespaceSelector:
       any: true
     serviceMonitorSelector: {}

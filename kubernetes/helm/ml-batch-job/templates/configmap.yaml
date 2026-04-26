@@ -1,0 +1,24 @@
+# configmap.yaml
+# Environment variables injected into all job containers (GPU and CPU).
+#
+# Values come from .Values.config — a flat key-value map defined per project
+# in kubernetes/helm/values/<app>-<env>.yaml.
+#
+# Rules:
+#   - Do NOT put secrets here — use ExternalSecret for sensitive values
+#   - Changes only take effect on the next Job run (new runId required)
+#     Kubernetes does not restart completed Jobs on ConfigMap update
+#
+# Rendered as empty ConfigMap when config: {} (default) — safe no-op,
+# the envFrom reference in Job templates handles empty ConfigMaps gracefully.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ml-batch-job.fullname" . }}-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "ml-batch-job.labels" . | nindent 4 }}
+data:
+  {{- range $key, $val := .Values.config }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
