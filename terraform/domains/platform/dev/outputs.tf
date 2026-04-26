@@ -25,3 +25,8 @@ output "quanvnn_datasets_bucket_name" {
   description = "Name of the QuanvNN datasets S3 bucket"
   value       = aws_s3_bucket.quanvnn_datasets.bucket
 }
+
+output "quanvnn_irsa_role_arn" {
+  description = "IRSA role ARN for the QuanvNN ServiceAccount (ml/quanvnn-sa) — read-only S3 access"
+  value       = module.irsa_quanvnn.role_arn
+}
