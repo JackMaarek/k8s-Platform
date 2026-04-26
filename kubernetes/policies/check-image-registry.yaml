@@ -59,3 +59,6 @@ spec:
                   - key: "{{ element.image }}"
                     operator: NotEquals
                     value: "ghcr.io/opencost/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "public.ecr.aws/aws-cli/*"

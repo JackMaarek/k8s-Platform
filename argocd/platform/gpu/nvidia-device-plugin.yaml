@@ -1,0 +1,66 @@
+# NVIDIA k8s-device-plugin — exposes GPUs to the kubelet as nvidia.com/gpu
+# Wave 2 — runs after istio-base/istiod/istio-cni (waves -2 to 0) so that
+# strict mTLS doesn't disrupt the device plugin's gRPC socket negotiation.
+# Without this DaemonSet, GPU Jobs stay Pending forever even after Cluster
+# Autoscaler provisions a g4dn node — kubelet never advertises the resource.
+#
+# Targets the GPU node group only via nodeSelector + matching toleration.
+# CPU nodes are unaffected — no DaemonSet pod is scheduled there.
+#
+# Ref: https://github.com/NVIDIA/k8s-device-plugin
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nvidia-device-plugin
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            awsRegion: __AWS_REGION__
+  template:
+    metadata:
+      name: 'nvidia-device-plugin-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      project: platform
+      source:
+        repoURL: https://nvidia.github.io/k8s-device-plugin
+        chart: nvidia-device-plugin
+        targetRevision: __NVIDIA_DEVICE_PLUGIN_VERSION__
+        helm:
+          releaseName: nvidia-device-plugin
+          values: |
+            # Restrict the DaemonSet to GPU nodes only — matches the
+            # node-group=gpu label set in terraform.tfvars node_groups.gpu.labels.
+            nodeSelector:
+              node-group: gpu
+
+            # Tolerate the GPU taint declared on the gpu nodegroup
+            # (terraform.tfvars: nvidia.com/gpu=true:NoSchedule).
+            tolerations:
+              - key: nvidia.com/gpu
+                operator: Equal
+                value: "true"
+                effect: NoSchedule
+
+            # No runtimeClassName override — EKS GPU AMIs ship the nvidia
+            # container runtime as the default runc shim. Setting this would
+            # break scheduling on stock AMIs.
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kube-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+          - ServerSideApply=true

@@ -1,0 +1,17 @@
+# gpu-high-priority — reserved for time-sensitive GPU workloads
+# (e.g. inference, on-call experiments). Higher priority than
+# gpu-batch-priority — preempts batch jobs when GPU capacity is constrained.
+#
+# value 1000 sits well below the cluster-default system tiers
+# (system-cluster-critical = 2000000000) but well above the implicit
+# default of 0 used by unprioritized pods.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: gpu-high-priority
+  labels:
+    platform.podyourlife.io/domain: ml
+    platform.podyourlife.io/priority-tier: high
+value: 1000
+globalDefault: false
+description: "High-priority GPU workloads (inference, time-sensitive). Preempts gpu-batch-priority."

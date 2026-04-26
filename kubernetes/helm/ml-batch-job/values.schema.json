@@ -57,8 +57,18 @@
       "type": "object",
       "properties": {
         "enabled": { "type": "boolean" },
-        "secretName": { "type": "string" },
-        "awsSecretPath": { "type": "string" }
+        "secretName": { "type": "string", "minLength": 1 },
+        "awsSecretPath": { "type": "string" },
+        "secretStoreRef": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "kind": {
+              "type": "string",
+              "enum": ["ClusterSecretStore", "SecretStore"]
+            }
+          }
+        }
       }
     },
     "serviceAccount": {

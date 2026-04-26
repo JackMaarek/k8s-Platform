@@ -43,10 +43,27 @@ image:
 
 # Creates an ExternalSecret that syncs the GHCR pull token from AWS Secrets
 # Manager into a native Kubernetes Secret. ESO must be installed on the cluster.
+#
+# Default is opt-out (enabled: false) — consumers who pre-create the Secret
+# externally are unaffected. Set enabled: true in the per-app values file
+# (e.g. quanvnn-dev.yaml) to provision the ExternalSecret via this chart.
+#
+# When enabled:
+#   - secretName    : K8s Secret name written by ESO; must match the
+#                     reference in job-cpu.yaml/job-gpu.yaml imagePullSecrets.
+#   - awsSecretPath : key path in AWS Secrets Manager. The remote secret must
+#                     contain a JSON property named "dockerconfig" whose value
+#                     is the dockerconfigjson contents.
+#   - secretStoreRef: ClusterSecretStore (default) or SecretStore reference.
+#                     Canonical name "aws-secrets-manager" is the platform
+#                     default — bound to AWS SM via IRSA on ESO.
 imagePullSecret:
-  enabled: true
+  enabled: false
   secretName: "ghcr-pull-secret"
   awsSecretPath: ""
+  secretStoreRef:
+    name: "aws-secrets-manager"
+    kind: "ClusterSecretStore"
 
 # A dedicated ServiceAccount is always created for isolation.
 # Set irsaRoleArn to enable IRSA — grants the pod AWS API access (e.g. S3)
