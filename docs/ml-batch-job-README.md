@@ -60,15 +60,15 @@ provisions a GPU node when the GPU Job is created, and releases it after the Job
 
 ## Istio and Jobs
 
-The `ml` namespace has `istio-injection: enabled`. However, all Job pods opt out via annotation:
+The `ml` namespace has `istio-injection: disabled` (no `istio-injection` label on the
+Namespace). Pods are not injected with an Envoy sidecar — no per-pod opt-out annotation
+is required.
 
-```yaml
-sidecar.istio.io/inject: "false"
-```
-
-Rationale: Envoy does not terminate when the main container exits, which blocks the pod
-from reaching `Completed` status. ML jobs have no inbound mesh traffic and access AWS S3
-via IRSA + AWS SDK (TLS native) — the sidecar provides no security benefit here.
+Rationale: Envoy does not terminate when the main container exits, blocking batch Jobs
+from reaching `Completed` status. The PSS `restricted` profile enforced on this namespace
+also rejects the `istio-init` initContainer (`NET_ADMIN`, `runAsUser=0`). ML jobs have no
+inbound mesh traffic and access AWS S3 via IRSA + AWS SDK (TLS native) — the sidecar
+provides no security benefit here.
 
 ---
 
