@@ -7,7 +7,7 @@
 # Read-only from the cluster — uploads happen out-of-band (operator from a workstation).
 
 resource "aws_s3_bucket" "quanvnn_datasets" {
-  bucket        = "podyourlife-quanvnn-datasets-dev"
+  bucket        = "podyourlife-quanvnn-datasets-${var.environment}"
   force_destroy = false
 
   tags = {
@@ -24,6 +24,8 @@ resource "aws_s3_bucket_versioning" "quanvnn_datasets" {
   }
 }
 
+# TODO(staging/prod): switch to SSE-KMS with a customer-managed key when
+# compliance_profile is "soc2" — AES256 (SSE-S3) is acceptable for dev only.
 resource "aws_s3_bucket_server_side_encryption_configuration" "quanvnn_datasets" {
   bucket = aws_s3_bucket.quanvnn_datasets.id
 
