@@ -1,0 +1,16 @@
+# gpu-batch-priority — default priority for GPU batch training jobs.
+# Below gpu-high-priority (preemptible by inference workloads), above
+# the implicit default of 0 used by unprioritized pods.
+#
+# QuanvNN ml-batch-job pod templates will reference this class via
+# spec.priorityClassName in Sprint 3.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: gpu-batch-priority
+  labels:
+    platform.podyourlife.io/domain: ml
+    platform.podyourlife.io/priority-tier: batch
+value: 500
+globalDefault: false
+description: "Batch GPU workloads (QuanvNN training). Preemptible by gpu-high-priority."

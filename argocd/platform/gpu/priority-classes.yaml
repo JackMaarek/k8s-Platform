@@ -1,0 +1,54 @@
+# Cluster-scoped PriorityClasses for GPU workloads.
+#
+# Wave -2 — must be present before any pod that references them is
+# scheduled. The actual GPU workloads run much later (wave 9+ for
+# monitoring stack, then on-demand ML jobs), so wave -2 is comfortably
+# early. This wave parallels istio-base (CRDs) — no ordering conflict
+# since both are cluster-scoped resources with no inter-dependency.
+#
+# These resources are platform-owned (cluster-scoped) and therefore
+# cannot live in the chart-owned ml AppProject (whose
+# clusterResourceWhitelist is empty). The platform AppProject scope
+# owns them via this dedicated ApplicationSet.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: priority-classes
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: __ENV__
+            targetRevision: __TARGET_REVISION__
+            repoUrl: __REPO_URL__
+  template:
+    metadata:
+      name: 'priority-classes-{{.env}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "-2"
+    spec:
+      project: platform
+      source:
+        repoURL: '{{.repoUrl}}'
+        targetRevision: '{{.targetRevision}}'
+        path: kubernetes/manifests/priority-classes
+        directory:
+          recurse: false
+      destination:
+        # PriorityClasses are cluster-scoped — destination namespace is
+        # ignored by the API but ArgoCD requires the field. kube-system
+        # is the conventional placeholder for cluster-scoped manifests.
+        server: https://kubernetes.default.svc
+        namespace: kube-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+          - ServerSideApply=true
