@@ -13,7 +13,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
+          - env: dev
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
@@ -31,7 +31,7 @@ spec:
       sources:
         - repoURL: https://grafana.github.io/helm-charts
           chart: promtail
-          targetRevision: __PROMTAIL_VERSION__
+          targetRevision: 6.17.1
           helm:
             releaseName: promtail
             valueFiles:

@@ -5,13 +5,13 @@
 aws_region         = "__AWS_REGION__"
 cluster_name       = "__CLUSTER_NAME__"
 environment        = "dev"
-kubernetes_version = "__KUBERNETES_VERSION__"
+kubernetes_version = "1.33"
 compliance_profile = "none"
 
 log_retention_days = 7
 
 aws_account_id = "__AWS_ACCOUNT_ID__"
 
-github_org    = "__GITHUB_ORG__"
+github_org           = "__GITHUB_ORG__"
 allowed_repos        = ["__ALLOWED_REPOS__"]
-apply_branch_pattern = "__ENV__"
+apply_branch_pattern = "dev"

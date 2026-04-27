@@ -20,7 +20,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
+          - env: dev
             targetRevision: __TARGET_REVISION__
             repoUrl: __REPO_URL__
   template:

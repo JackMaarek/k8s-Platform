@@ -12,7 +12,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: quanvnn-__ENV__
+  name: quanvnn-dev
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "9"
@@ -21,7 +21,7 @@ metadata:
   labels:
     app.kubernetes.io/name: quanvnn
     app.kubernetes.io/part-of: ml-platform
-    environment: __ENV__
+    environment: dev
 spec:
   project: ml
 
@@ -36,7 +36,7 @@ spec:
           # Chart defaults — always loaded first.
           - values.yaml
           # QuanvNN dev overrides — loaded second, takes precedence.
-          - $values/kubernetes/helm/values/quanvnn-__ENV__.yaml
+          - $values/kubernetes/helm/values/quanvnn-dev.yaml
 
     # Values reference source — required for the $values alias above.
     - repoURL: __REPO_URL__

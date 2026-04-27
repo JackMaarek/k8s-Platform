@@ -18,7 +18,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
+          - env: dev
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
@@ -37,7 +37,7 @@ spec:
         # OpenCost Helm chart — official CNCF chart repository
         - repoURL: https://opencost.github.io/opencost-helm-chart
           chart: opencost
-          targetRevision: __OPENCOST_VERSION__
+          targetRevision: 1.42.0
           helm:
             releaseName: opencost
             valueFiles:

@@ -6,7 +6,7 @@
 # The MutatingAdmissionWebhook registered by istiod is required for
 # gateway pod injection (image: auto substitution).
 #
-# Version: __ISTIO_VERSION__ — resolved by platform-bot env hydrate from platform.yaml
+# Version: 1.27.1 — resolved by platform-bot env hydrate from platform.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -35,7 +35,7 @@ spec:
   source:
     repoURL: https://istio-release.storage.googleapis.com/charts
     chart: istiod
-    targetRevision: __ISTIO_VERSION__
+    targetRevision: 1.27.1
     helm:
       releaseName: istiod
       values: |
@@ -65,7 +65,7 @@ spec:
         # the proxy image at runtime when no registry mirror is configured.
         global:
           hub: docker.io/istio
-          tag: __ISTIO_VERSION__
+          tag: 1.27.1
 
   destination:
     server: https://kubernetes.default.svc

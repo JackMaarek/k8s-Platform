@@ -20,7 +20,7 @@ versions:
   external_secrets: "0.10.7"
   opencost: "1.42.0"
   cert_manager: "v1.20.0"
-  nvidia_device_plugin: "0.19.1"   # → __NVIDIA_DEVICE_PLUGIN_VERSION__ (Sprint 2D bot mapping pending)
+  nvidia_device_plugin: "0.19.1"   # → 0.19.1 (Sprint 2D bot mapping pending)
 
 accounts:
   dev: ""

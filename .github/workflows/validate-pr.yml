@@ -44,10 +44,10 @@ jobs:
           # Les placeholders sont AUTORISÉS dans argocd/ (generators elements:)
           # Ils sont INTERDITS dans kubernetes/manifests/ et kubernetes/helm/
           # Exception: kubernetes/manifests/secrets/ — ExternalSecret remoteRef
-          # key paths are env-scoped (e.g. platform/__ENV__/grafana-admin) and
+          # key paths are env-scoped (e.g. platform/dev/grafana-admin) and
           # resolved by platform-bot at hydrate time on env branches.
           VIOLATIONS=$(grep -rn \
-            "__ENV__\|__TARGET_REVISION__\|__AWS_ACCOUNT_ID__\|__CLUSTER_NAME__\|__ESO_IRSA_ROLE_ARN__" \
+            "dev\|__TARGET_REVISION__\|__AWS_ACCOUNT_ID__\|__CLUSTER_NAME__\|__ESO_IRSA_ROLE_ARN__" \
             kubernetes/manifests/ \
             --include="*.yaml" \
             --exclude-dir="secrets" \

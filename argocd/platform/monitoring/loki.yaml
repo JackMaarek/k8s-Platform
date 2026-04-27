@@ -15,7 +15,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
+          - env: dev
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
@@ -33,7 +33,7 @@ spec:
       sources:
         - repoURL: https://grafana.github.io/helm-charts
           chart: loki
-          targetRevision: __LOKI_VERSION__
+          targetRevision: 6.53.0
           helm:
             releaseName: loki
             valueFiles:

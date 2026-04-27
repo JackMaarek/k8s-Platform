@@ -18,7 +18,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: __ENV__
+          - env: dev
             targetRevision: __TARGET_REVISION__
             awsRegion: __AWS_REGION__
   template:
@@ -34,7 +34,7 @@ spec:
       source:
         repoURL: https://nvidia.github.io/k8s-device-plugin
         chart: nvidia-device-plugin
-        targetRevision: __NVIDIA_DEVICE_PLUGIN_VERSION__
+        targetRevision: 0.19.1
         helm:
           releaseName: nvidia-device-plugin
           values: |
