@@ -69,6 +69,21 @@
             }
           }
         }
+      },
+      "if": {
+        "properties": {
+          "enabled": { "const": true }
+        },
+        "required": ["enabled"]
+      },
+      "then": {
+        "required": ["awsSecretPath"],
+        "properties": {
+          "awsSecretPath": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "serviceAccount": {

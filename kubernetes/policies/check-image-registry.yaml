@@ -32,33 +32,27 @@ spec:
                 - external-secrets
       validate:
         message: >-
-          Images must come from ghcr.io/PodYourLife/ or an allowed system registry.
+          Pod images must come from an approved registry. Allowed registries:
+          ghcr.io/PodYourLife/, docker.io/library/, docker.io/hashicorp/,
+          registry.k8s.io/, quay.io/kiwigrid/, quay.io/kubecost/,
+          ghcr.io/opencost/, public.ecr.aws/aws-cli/.
+        # Canonical Kyverno multi-registry allowlist: foreach over each
+        # container list with `pattern.image` using the `|` OR operator.
+        # The `|` is documented as a logical-OR pattern operator at
+        # https://kyverno.io/docs/policy-types/cluster-policy/validate
+        # (section "Operators"); the per-list foreach shape mirrors the
+        # "Enforce trusted registry for Pod images" example on the same page.
+        # This form correctly supports mixed-registry pods (e.g. main
+        # container from ghcr.io/PodYourLife + initContainer from
+        # public.ecr.aws/aws-cli — Sprint 2C C4) which the previous
+        # broken NotEquals/value:"*" form silently denied (masked by Audit).
         foreach:
-          - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
-            deny:
-              conditions:
-                all:
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "ghcr.io/PodYourLife/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "docker.io/library/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "docker.io/hashicorp/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "registry.k8s.io/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "quay.io/kiwigrid/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "quay.io/kubecost/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "ghcr.io/opencost/*"
-                  - key: "{{ element.image }}"
-                    operator: NotEquals
-                    value: "public.ecr.aws/aws-cli/*"
+          - list: "request.object.spec.containers"
+            pattern:
+              image: "ghcr.io/PodYourLife/* | docker.io/library/* | docker.io/hashicorp/* | registry.k8s.io/* | quay.io/kiwigrid/* | quay.io/kubecost/* | ghcr.io/opencost/* | public.ecr.aws/aws-cli/*"
+          - list: "request.object.spec.initContainers"
+            pattern:
+              image: "ghcr.io/PodYourLife/* | docker.io/library/* | docker.io/hashicorp/* | registry.k8s.io/* | quay.io/kiwigrid/* | quay.io/kubecost/* | ghcr.io/opencost/* | public.ecr.aws/aws-cli/*"
+          - list: "request.object.spec.ephemeralContainers"
+            pattern:
+              image: "ghcr.io/PodYourLife/* | docker.io/library/* | docker.io/hashicorp/* | registry.k8s.io/* | quay.io/kiwigrid/* | quay.io/kubecost/* | ghcr.io/opencost/* | public.ecr.aws/aws-cli/*"
