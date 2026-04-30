@@ -1,5 +1,5 @@
-state_bucket = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID_DEV__"
-aws_region   = "__AWS_REGION__"
+state_bucket = "k8s-platform-terraform-state-351457945908"
+aws_region   = "eu-west-3"
 environment  = "dev"
 
 # Node groups — add/remove blocks to provision/destroy node groups.

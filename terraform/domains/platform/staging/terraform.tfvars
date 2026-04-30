@@ -1,5 +1,5 @@
 state_bucket = "k8s-platform-terraform-state-__AWS_ACCOUNT_ID_STAGING__"
-aws_region   = "__AWS_REGION__"
+aws_region   = "eu-west-3"
 environment  = "staging"
 
 node_groups = {

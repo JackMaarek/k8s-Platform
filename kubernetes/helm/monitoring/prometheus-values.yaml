@@ -30,10 +30,10 @@ prometheusOperator:
 prometheus:
   enabled: true
   prometheusSpec:
-    # __CLUSTER_NAME__ is replaced by platform-bot at init time.
+    # dev-k8s is replaced by platform-bot at init time.
     # This label is injected on all metrics for multi-cluster Grafana views.
     externalLabels:
-      cluster: __CLUSTER_NAME__
+      cluster: dev-k8s
     # Auto-discovers ServiceMonitors and PodMonitors across all namespaces.
     # Each component declares its own ServiceMonitor — no central list here.
     namespaceSelector:

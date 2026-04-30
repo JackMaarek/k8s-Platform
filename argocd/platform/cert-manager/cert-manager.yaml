@@ -20,8 +20,8 @@ spec:
     - list:
         elements:
           - env: dev
-            targetRevision: __TARGET_REVISION__
-            awsRegion: __AWS_REGION__
+            targetRevision: dev
+            awsRegion: eu-west-3
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
   template:
     metadata:

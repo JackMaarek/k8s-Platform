@@ -21,8 +21,8 @@ spec:
     - list:
         elements:
           - env: dev
-            targetRevision: __TARGET_REVISION__
-            repoUrl: __REPO_URL__
+            targetRevision: dev
+            repoUrl: git@github.com:PodYourLife/k8s-Platform.git
   template:
     metadata:
       name: 'priority-classes-{{.env}}'

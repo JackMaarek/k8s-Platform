@@ -27,8 +27,8 @@ spec:
 
   sources:
     # Generic ml-batch-job chart — shared across all ML batch projects.
-    - repoURL: __REPO_URL__
-      targetRevision: __TARGET_REVISION__
+    - repoURL: git@github.com:PodYourLife/k8s-Platform.git
+      targetRevision: dev
       path: kubernetes/helm/ml-batch-job
       helm:
         releaseName: quanvnn
@@ -39,8 +39,8 @@ spec:
           - $values/kubernetes/helm/values/quanvnn-dev.yaml
 
     # Values reference source — required for the $values alias above.
-    - repoURL: __REPO_URL__
-      targetRevision: __TARGET_REVISION__
+    - repoURL: git@github.com:PodYourLife/k8s-Platform.git
+      targetRevision: dev
       ref: values
 
   destination:

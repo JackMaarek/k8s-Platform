@@ -19,7 +19,7 @@ spec:
   description: "ML batch workloads — training pipelines and feature extraction jobs"
 
   sourceRepos:
-    - __REPO_URL__
+    - git@github.com:PodYourLife/k8s-Platform.git
 
   destinations:
     - namespace: ml

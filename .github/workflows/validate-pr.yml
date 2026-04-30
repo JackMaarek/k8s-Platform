@@ -47,7 +47,7 @@ jobs:
           # key paths are env-scoped (e.g. platform/dev/grafana-admin) and
           # resolved by platform-bot at hydrate time on env branches.
           VIOLATIONS=$(grep -rn \
-            "dev\|__TARGET_REVISION__\|__AWS_ACCOUNT_ID__\|__CLUSTER_NAME__\|__ESO_IRSA_ROLE_ARN__" \
+            "dev\|dev\|351457945908\|dev-k8s\|__ESO_IRSA_ROLE_ARN__" \
             kubernetes/manifests/ \
             --include="*.yaml" \
             --exclude-dir="secrets" \

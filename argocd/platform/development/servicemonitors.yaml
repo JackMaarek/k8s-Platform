@@ -21,10 +21,10 @@ spec:
     - list:
         elements:
           - env: dev
-            targetRevision: __TARGET_REVISION__
-            awsRegion: __AWS_REGION__
+            targetRevision: dev
+            awsRegion: eu-west-3
             esoIrsaRoleArn: __ESO_IRSA_ROLE_ARN__
-            repoUrl: __REPO_URL__
+            repoUrl: git@github.com:PodYourLife/k8s-Platform.git
   template:
     metadata:
       name: 'development-servicemonitors-{{.env}}'

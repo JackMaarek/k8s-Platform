@@ -23,7 +23,7 @@ opencost:
     # AWS cloud integration — enables instance-type-aware pricing
     aws:
       # Region used for AWS pricing API lookups
-      region: __AWS_REGION__
+      region: eu-west-3
 
     # Resource requests/limits — OpenCost is lightweight
     resources:

@@ -4,7 +4,7 @@
 
 terraform {
   backend "s3" {
-    bucket         = "k8s-platform-terraform-state-"
+    bucket         = "k8s-platform-terraform-state-351457945908"
     key            = "core/shared/prod/terraform.tfstate"
     region         = "eu-west-3"
     encrypt        = true

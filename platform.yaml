@@ -1,51 +1,26 @@
-# platform.yaml — source of truth for platform component versions and per-env state.
-# Managed by platform-bot: read at every env hydrate, written after every env setup.
-#
-# Two sections:
-#   versions:     certified component versions — global defaults applied to all envs.
-#                 platform-bot reads these to resolve __VERSION__ placeholders
-#                 and to pass --version to helm install (local up).
-#   environments: per-env resolved state — written by platform-bot env setup.
-#                 Serves as hints for subsequent env setup prompts.
-#                 Optional version overrides per env (override the global defaults above).
-
 versions:
-  kubernetes: "1.33"
-  istio: "1.27.1"
-  argocd: "7.8.26"          # consumed by platform-bot local up (helm install), NOT by ArgoCD ApplicationSets
-  prometheus: "82.4.2"
-  loki: "6.53.0"
-  promtail: "6.17.1"
-  kyverno: "3.4.1"
-  external_secrets: "0.10.7"
-  opencost: "1.42.0"
-  cert_manager: "v1.20.0"
-  nvidia_device_plugin: "0.19.1"   # → 0.19.1 (Sprint 2D bot mapping pending)
-
-accounts:
-  dev: ""
-  staging: ""
-  prod: ""
-
+    kubernetes: 1.33
+    istio: 1.27.1
+    argocd: 7.8.26
+    prometheus: 82.4.2
+    loki: 6.53.0
+    promtail: 6.17.1
+    kyverno: 3.4.1
+    external_secrets: 0.10.7
+    opencost: 1.42.0
+    cert_manager: v1.20.0
+    nvidia_device_plugin: 0.19.1
 environments:
-  dev:
-    region: eu-west-3
-    cluster_name: ""
-    eso_irsa_role_arn: ""
-    target_revision: dev
-    repo_url: ""
-    # Per-env version overrides (optional) — uncomment to override the global default above.
-    # istio: "1.26.4"
-    # kubernetes: "1.32"
-  staging:
-    region: eu-west-3
-    cluster_name: ""
-    eso_irsa_role_arn: ""
-    target_revision: staging
-    repo_url: ""
-  prod:
-    region: eu-west-3
-    cluster_name: ""
-    eso_irsa_role_arn: ""
-    target_revision: prod
-    repo_url: ""
+    dev:
+        region: eu-west-3
+        target_revision: dev
+        cluster_name: dev-k8s
+        repo_url: git@github.com:PodYourLife/k8s-Platform.git
+    staging:
+        region: eu-west-3
+        target_revision: staging
+    prod:
+        region: eu-west-3
+        target_revision: prod
+accounts:
+    dev: 351457945908
