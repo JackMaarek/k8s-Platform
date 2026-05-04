@@ -56,9 +56,9 @@ imagePullSecret:
 # SERVICE ACCOUNT + IRSA
 # ─────────────────────────────────────────────────────────────────────────────
 # IRSA Role ARN provisioned by terraform/domains/platform — grants S3 access.
-# Replace __QUANVNN_IRSA_ROLE_ARN__ with the actual ARN at init time (platform-bot).
+# Replace arn:aws:iam::351457945908:role/dev-k8s-quanvnn-role with the actual ARN at init time (platform-bot).
 serviceAccount:
-  irsaRoleArn: "__QUANVNN_IRSA_ROLE_ARN__"
+  irsaRoleArn: "arn:aws:iam::351457945908:role/dev-k8s-quanvnn-role"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STORAGE

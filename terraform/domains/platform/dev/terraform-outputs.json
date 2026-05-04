@@ -1,0 +1,38 @@
+{
+  "argocd_image_updater_role_arn": {
+    "value": "arn:aws:iam::351457945908:role/dev-k8s-argocd-image-updater-role",
+    "type": null,
+    "sensitive": false
+  },
+  "node_group_arns": {
+    "value": {
+      "gpu": "arn:aws:eks:eu-west-3:351457945908:nodegroup/dev-k8s/dev-k8s-gpu/d4cef997-a805-d85a-2dc1-892744751c80",
+      "standard": "arn:aws:eks:eu-west-3:351457945908:nodegroup/dev-k8s/dev-k8s-standard/66cef997-a80a-9ae9-f3a5-3c619dc82ca4"
+    },
+    "type": null,
+    "sensitive": false
+  },
+  "node_group_ids": {
+    "value": {
+      "gpu": "dev-k8s:dev-k8s-gpu",
+      "standard": "dev-k8s:dev-k8s-standard"
+    },
+    "type": null,
+    "sensitive": false
+  },
+  "quanvnn_datasets_bucket_arn": {
+    "value": "arn:aws:s3:::podyourlife-quanvnn-datasets-dev",
+    "type": null,
+    "sensitive": false
+  },
+  "quanvnn_datasets_bucket_name": {
+    "value": "podyourlife-quanvnn-datasets-dev",
+    "type": null,
+    "sensitive": false
+  },
+  "quanvnn_irsa_role_arn": {
+    "value": "arn:aws:iam::351457945908:role/dev-k8s-quanvnn-role",
+    "type": null,
+    "sensitive": false
+  }
+}
